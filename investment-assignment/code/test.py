@@ -36,7 +36,7 @@ def analyse():
     # Fix case
     rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds2[ROUNDS2_COMPANY_PERMALINK].str.lower()
     companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[COMPANIES_COMPANY_PERMALINK].str.lower()
-    unique_companies_in_companies, unique_companies_in_rounds2 = uniques(companies, rounds2)
+    unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds2)
     # How many unique companies are present in rounds2?
     print(len(unique_companies_in_rounds2))
 
@@ -100,7 +100,7 @@ def analyse():
                          rounds2)  # This permalink is mangled in both data sets, generated new permalink
     regenerate_permalink("k��k", "KÖÖK", companies, rounds2)
 
-    x, y = uniques(companies, rounds2)
+    x, y = unique_companies(companies, rounds2)
     print(set(y).difference(set(x)))
     print(set(x).difference(set(y)))
 
@@ -141,7 +141,7 @@ def fix_permalink_from_companies(company_name, rounds_permalink_fragment, compan
     print(companies[companies[truth_column] == lowercase_corrected_value].to_string())
     print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
 
-def uniques(companies, rounds2):
+def unique_companies(companies, rounds2):
     global ROUNDS2_COMPANY_PERMALINK_LOWERCASE
     global COMPANIES_COMPANY_PERMALINK_LOWERCASE
 
