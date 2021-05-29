@@ -73,23 +73,28 @@ def analyse():
     fix_permalink_from_rounds("Vá de Táxi", "/organization/vá-de-táxi", companies, rounds2)
 
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds2)
+    fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds2)
+    fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds2)
     # fix("iProof - The Foundation for the Internet of Things", "/organization/affluent-attaché-club-2", rounds2, companies)
-    fix_zengame(companies, rounds2, "ZenGame", "ZenGame 禅游科技")
-    fix_zengame(companies, rounds2, "EnergyStone Games", "EnergyStone Games 灵石游戏")
-    fix_zengame(companies, rounds2, "Magnet Tech ", "Magnet Tech 磁石科技")
-    fix_zengame(companies, rounds2, "Huizuche.com", "Huizuche.com 惠租车")
-    fix_zengame(companies, rounds2, "Inveno ", "Inveno 英威诺")
-    fix_zengame(companies, rounds2, "Weiche Tech ", "Weiche Tech 喂车科技")
-    fix_zengame(companies, rounds2, "TipCat Interactive", "TipCat Interactive 沙舟信息科技")
-    fix_zengame(companies, rounds2, "Jiwu", "Jiwu 吉屋网")
-    fix_zengame(companies, rounds2, "TalentSigned", "TalentSigned™")
-    fix_zengame(companies, rounds2, "Asiansbook", "Asiansbook™")
-    fix_zengame(companies, rounds2, "Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", "")
+    regenerate_permalink(companies, rounds2, "ZenGame", "ZenGame 禅游科技")
+    regenerate_permalink(companies, rounds2, "EnergyStone Games", "EnergyStone Games 灵石游戏")
+    regenerate_permalink(companies, rounds2, "Magnet Tech ", "Magnet Tech 磁石科技")
+    regenerate_permalink(companies, rounds2, "Huizuche.com", "Huizuche.com 惠租车")
+    regenerate_permalink(companies, rounds2, "Inveno ", "Inveno 英威诺")
+    regenerate_permalink(companies, rounds2, "Weiche Tech ", "Weiche Tech 喂车科技")
+    regenerate_permalink(companies, rounds2, "TipCat Interactive", "TipCat Interactive 沙舟信息科技")
+    regenerate_permalink(companies, rounds2, "Jiwu", "Jiwu 吉屋网")
+    regenerate_permalink(companies, rounds2, "TalentSigned", "TalentSigned™")
+    regenerate_permalink(companies, rounds2, "Asiansbook", "Asiansbook™")
+    regenerate_permalink(companies, rounds2, "Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", "")
+    regenerate_permalink(companies, rounds2, "thế-giới-di", "The Gioi Di Dong") # This permalink is mangled in both data sets, generated new permalink
+    regenerate_permalink(companies, rounds2, "k��k", "KÖÖK")
 
     x, y = uniques(companies, rounds2)
     print(set(y).difference(set(x)))
+    print(rounds2.iloc[54224])
 
-def fix_zengame(companies, rounds2, company_name_prefix, full_company_name, optional_organization_prefix="/organization/"):
+def regenerate_permalink(companies, rounds2, company_name_prefix, full_company_name, optional_organization_prefix="/organization/"):
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_NAME
 
@@ -102,7 +107,7 @@ def fix_zengame(companies, rounds2, company_name_prefix, full_company_name, opti
     print(corrected_permalink_lowercase)
     companies.loc[companies[COMPANIES_NAME].str.contains(full_company_name, na=False), COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
     rounds2.loc[rounds2[ROUNDS2_COMPANY_PERMALINK].str.contains(f'{optional_organization_prefix}{dashed_company_name_prefix}',
-                                                                na=False, case=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
+                                                                na=False, case=False, regex=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
     # print(companies.iloc[65778])
     print(companies[companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
     print(rounds2[rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
@@ -123,7 +128,7 @@ def fix_permalink_from_companies(company_name, rounds_permalink_fragment, compan
     correct_value_rows = companies[companies[COMPANIES_NAME] == company_name]
     # print(correct_value_rows.iloc[0][ROUNDS2_COMPANY_PERMALINK_LOWERCASE])
     lowercase_corrected_value = correct_value_rows.iloc[0][COMPANIES_COMPANY_PERMALINK_LOWERCASE].lower()
-    rounds.loc[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(rounds_permalink_fragment, na=False, case=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = lowercase_corrected_value
+    rounds.loc[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(rounds_permalink_fragment, na=False, case=False, regex=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = lowercase_corrected_value
     print(companies[companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
     print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
 
