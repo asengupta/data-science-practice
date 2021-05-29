@@ -24,6 +24,7 @@ class Columns:
     ORGANIZATION = "/organization/"
     FUNDING_ROUND_TYPE = "funding_round_type"
     RAISED_AMOUNT_USD = "raised_amount_usd"
+    COUNTRY_CODE = "country_code"
 
 class InvestmentTypes:
     SEED = "seed"
@@ -90,6 +91,7 @@ def analyse():
     print(rounds.columns)
 
     # Fix case
+    print(set(companies[Columns.COUNTRY_CODE].unique()))
     rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[ROUNDS2_COMPANY_PERMALINK].str.lower()
     companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[COMPANIES_COMPANY_PERMALINK].str.lower()
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
@@ -120,9 +122,9 @@ def analyse():
     # Based on the most representative investment amount calculated above, which investment type do you think is the most suitable for Spark Funds?
     # Private Equity
 
-def clean_permalinks(companies, rounds2):
+def clean_permalinks(companies, rounds):
     # Fix inconsistent Data
-    fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds2)
+    fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds)
     fix_permalink_from_rounds("Boréal Bikes Incorporated")
     fix_permalink_from_rounds("Tío Conejo")
     fix_permalink_from_rounds("Monnier Frères")
@@ -142,29 +144,29 @@ def clean_permalinks(companies, rounds2):
     fix_permalink_from_rounds("Médica Santa Carmen", locator=constant(with_organization_prefix("médica-santa-carmen-2")))
     fix_permalink_from_rounds("E CÚBICA", locator=constant(with_organization_prefix("e-cêbica")))
     fix_permalink_from_rounds("Vá de Táxi")
-    fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds2)
-    fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds2)
-    fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds2)
+    fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds)
+    fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds)
+    fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds)
     fix_permalink_from_companies("iProof - The Foundation for the Internet of Things™",
-                                 "IPROOF---THE-FOUNDATION-FOR-THE-INTERNET-OF-THINGS", companies, rounds2)
-    fix_permalink_from_companies("ÁERON", "�eron", companies, rounds2)
+                                 "IPROOF---THE-FOUNDATION-FOR-THE-INTERNET-OF-THINGS", companies, rounds)
+    fix_permalink_from_companies("ÁERON", "�eron", companies, rounds)
     # This needs some extra fixing
-    fix_permalink_from_companies("Crème & Ciseaux", "e-ciseaux", companies, rounds2)
-    regenerate_permalink("ZenGame", "ZenGame 禅游科技", companies, rounds2)
-    regenerate_permalink("EnergyStone Games", "EnergyStone Games 灵石游戏", companies, rounds2)
-    regenerate_permalink("Magnet Tech ", "Magnet Tech 磁石科技", companies, rounds2)
-    regenerate_permalink("Huizuche.com", "Huizuche.com 惠租车", companies, rounds2)
-    regenerate_permalink("Inveno ", "Inveno 英威诺", companies, rounds2)
-    regenerate_permalink("Weiche Tech ", "Weiche Tech 喂车科技", companies, rounds2)
-    regenerate_permalink("TipCat Interactive", "TipCat Interactive 沙舟信息科技", companies, rounds2)
-    regenerate_permalink("Jiwu", "Jiwu 吉屋网", companies, rounds2)
-    regenerate_permalink("TalentSigned", "TalentSigned™", companies, rounds2)
-    regenerate_permalink("Asiansbook", "Asiansbook™", companies, rounds2)
-    regenerate_permalink("Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", companies, rounds2, "")
+    fix_permalink_from_companies("Crème & Ciseaux", "e-ciseaux", companies, rounds)
+    regenerate_permalink("ZenGame", "ZenGame 禅游科技", companies, rounds)
+    regenerate_permalink("EnergyStone Games", "EnergyStone Games 灵石游戏", companies, rounds)
+    regenerate_permalink("Magnet Tech ", "Magnet Tech 磁石科技", companies, rounds)
+    regenerate_permalink("Huizuche.com", "Huizuche.com 惠租车", companies, rounds)
+    regenerate_permalink("Inveno ", "Inveno 英威诺", companies, rounds)
+    regenerate_permalink("Weiche Tech ", "Weiche Tech 喂车科技", companies, rounds)
+    regenerate_permalink("TipCat Interactive", "TipCat Interactive 沙舟信息科技", companies, rounds)
+    regenerate_permalink("Jiwu", "Jiwu 吉屋网", companies, rounds)
+    regenerate_permalink("TalentSigned", "TalentSigned™", companies, rounds)
+    regenerate_permalink("Asiansbook", "Asiansbook™", companies, rounds)
+    regenerate_permalink("Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", companies, rounds, "")
     regenerate_permalink("thế-giới-di", "The Gioi Di Dong", companies,
-                         rounds2)  # This permalink is mangled in both data sets, generated new permalink
-    regenerate_permalink("k��k", "KÖÖK", companies, rounds2)
-    x, y = unique_companies(companies, rounds2)
+                         rounds)  # This permalink is mangled in both data sets, generated new permalink
+    regenerate_permalink("k��k", "KÖÖK", companies, rounds)
+    x, y = unique_companies(companies, rounds)
     print(set(y).difference(set(x)))
     print(set(x).difference(set(y)))
 
