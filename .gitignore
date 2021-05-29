@@ -1,0 +1,7 @@
+**/.jekyll-cache
+**/_site
+**/.sass-cache
+**/*.iml
+**/.idea
+**/.DS_Store
+**/*pycache*
