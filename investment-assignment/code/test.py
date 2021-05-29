@@ -54,37 +54,39 @@ def analyse():
     # print(len(companies_not_in_rounds2))
     # YES
 
-    #Fix inconsistent Data
+    clean_permalinks(companies, rounds2)
+
+
+def clean_permalinks(companies, rounds2):
+    # Fix inconsistent Data
     fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds2)
     fix_permalink_from_rounds("Boréal Bikes Incorporated")
     fix_permalink_from_rounds("Tío Conejo")
     fix_permalink_from_rounds("Monnier Frères")
-    fix_permalink_from_rounds("Affluent Attaché Club", locator = constant("/organization/affluent-attaché-club-2"))
+    fix_permalink_from_rounds("Affluent Attaché Club", locator=constant("/organization/affluent-attaché-club-2"))
     fix_permalink_from_rounds("Jean Pütz Produkte")
     fix_permalink_from_rounds("PatroFİN")
     fix_permalink_from_rounds("Salão VIP")
     fix_permalink_from_rounds("Proděti.cz")
-    fix_permalink_from_rounds("LawPadi", locator = constant("/organization/lawpàdí"))
+    fix_permalink_from_rounds("LawPadi", locator=constant("/organization/lawpàdí"))
     fix_permalink_from_rounds("eTool.io")
-    fix_permalink_from_rounds("Crème & Ciseaux", locator = constant("/organization/crème-ciseaux"))
+    fix_permalink_from_rounds("Crème & Ciseaux", locator=constant("/organization/crème-ciseaux"))
     fix_permalink_from_rounds("Prześwietl.pl")
     fix_permalink_from_rounds("Capptú")
     fix_permalink_from_rounds("Gráfica en línea")
     fix_permalink_from_rounds("IGNIA Bienes Raíces")
     fix_permalink_from_rounds("Bricoprivé.com")
-    fix_permalink_from_rounds("Médica Santa Carmen", locator = constant("/organization/médica-santa-carmen-2"))
-    fix_permalink_from_rounds("E CÚBICA", locator = constant("/organization/e-cêbica"))
+    fix_permalink_from_rounds("Médica Santa Carmen", locator=constant("/organization/médica-santa-carmen-2"))
+    fix_permalink_from_rounds("E CÚBICA", locator=constant("/organization/e-cêbica"))
     fix_permalink_from_rounds("Vá de Táxi")
-
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds2)
     fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds2)
     fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds2)
-    fix_permalink_from_companies("iProof - The Foundation for the Internet of Things™", "IPROOF---THE-FOUNDATION-FOR-THE-INTERNET-OF-THINGS", companies, rounds2)
+    fix_permalink_from_companies("iProof - The Foundation for the Internet of Things™",
+                                 "IPROOF---THE-FOUNDATION-FOR-THE-INTERNET-OF-THINGS", companies, rounds2)
     fix_permalink_from_companies("ÁERON", "�eron", companies, rounds2)
-
     # This needs some extra fixing
     fix_permalink_from_companies("Crème & Ciseaux", "e-ciseaux", companies, rounds2)
-
     regenerate_permalink("ZenGame", "ZenGame 禅游科技", companies, rounds2)
     regenerate_permalink("EnergyStone Games", "EnergyStone Games 灵石游戏", companies, rounds2)
     regenerate_permalink("Magnet Tech ", "Magnet Tech 磁石科技", companies, rounds2)
@@ -99,10 +101,10 @@ def analyse():
     regenerate_permalink("thế-giới-di", "The Gioi Di Dong", companies,
                          rounds2)  # This permalink is mangled in both data sets, generated new permalink
     regenerate_permalink("k��k", "KÖÖK", companies, rounds2)
-
     x, y = unique_companies(companies, rounds2)
     print(set(y).difference(set(x)))
     print(set(x).difference(set(y)))
+
 
 def regenerate_permalink(company_name_prefix, full_company_name, companies, rounds2,
                          optional_organization_prefix="/organization/"):
