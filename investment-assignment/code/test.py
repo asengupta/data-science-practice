@@ -44,51 +44,36 @@ def constant(x):
     return lambda company_name: x
 
 def merge_companies_rounds(companies, rounds):
-    print(len(companies))
-    print(len(rounds))
+    print(f"Number of Companies: {len(companies)}")
+    print(f"Number of Rounds: {len(rounds)}")
     return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
 
-
 def boxplot(investment_type, x, y, axis, stuff):
-    print(len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD]))
-    print(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median())
+    print(f"Statistics for {investment_type} investments: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].describe().apply(lambda x: format(x, 'f'))}")
+    # print(f"Number of {investment_type} investments: {len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])}" )
+    # print(f"Median investment oof type {investment_type}: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median()}" )
     axis[x,y].boxplot(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])
-
+    axis[x,y].set_title(investment_type)
 
 def analyse_investment_types(master_funding):
-    print(master_funding[Columns.FUNDING_ROUND_TYPE].unique())
+    # Use only 4 investment types
     investments_with_4_types = master_funding[(master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.ANGEL) |
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.SEED) |
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE) |
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.PRIVATE_EQUITY)]
     print(len(investments_with_4_types))
     funding_amounts_with_investment_types = investments_with_4_types[[Columns.FUNDING_ROUND_TYPE, Columns.RAISED_AMOUNT_USD]]
+
+    # Remove outliers
     funding_by_investment_type = funding_amounts_with_investment_types.groupby(Columns.FUNDING_ROUND_TYPE)
-    # stuff = funding_by_investment_type.apply(lambda g: g[(g[Columns.RAISED_AMOUNT_USD] > g[Columns.RAISED_AMOUNT_USD].quantile(q=0.15)) & (g[Columns.RAISED_AMOUNT_USD] < g[Columns.RAISED_AMOUNT_USD].quantile(q=0.90))]).to_frame()
-    stuff = funding_by_investment_type.apply(lambda g: g[(g[Columns.RAISED_AMOUNT_USD] > g[Columns.RAISED_AMOUNT_USD].quantile(q=0.05)) & (g[Columns.RAISED_AMOUNT_USD] < g[Columns.RAISED_AMOUNT_USD].quantile(q=0.90))])
-    # stuff = funding_by_investment_type.transform(lambda g: g[(g[Columns.RAISED_AMOUNT_USD] > 10)])
-    # stuff = funding_by_investment_type.apply(lambda g: g[g[Columns.RAISED_AMOUNT_USD] < 100000000000])
-    # print(funding_by_investment_type.describe().to_string())
-    # print(stuff)
-    # print(len(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD]))
-    # print(len(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD]))
-    # print(len(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD]))
-    # print(len(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD]))
-    # print(funding_by_investment_type.describe())
-    # funding_by_investment_type.boxplot(column=Columns.RAISED_AMOUNT_USD)
+    funding_by_investment_without_outliers = funding_by_investment_type.apply(lambda g: g[(g[Columns.RAISED_AMOUNT_USD] > g[Columns.RAISED_AMOUNT_USD].quantile(q=0.05)) & (g[Columns.RAISED_AMOUNT_USD] < g[Columns.RAISED_AMOUNT_USD].quantile(q=0.90))])
+
+    # Create boxplots
     figure, axis = plt.subplots(2, 2)
-    boxplot(InvestmentTypes.SEED, 0, 0, axis, stuff)
-    boxplot(InvestmentTypes.ANGEL, 0, 1, axis, stuff)
-    boxplot(InvestmentTypes.VENTURE, 1, 0, axis, stuff)
-    boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, stuff)
-    # axis[0,0].boxplot(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD])
-    # axis[0,0].set_title(InvestmentTypes.SEED)
-    # axis[0,1].boxplot(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD])
-    # axis[0,1].set_title(InvestmentTypes.ANGEL)
-    # axis[1,0].boxplot(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD])
-    # axis[1,0].set_title(InvestmentTypes.VENTURE)
-    # axis[1,1].boxplot(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD])
-    # axis[1,1].set_title(InvestmentTypes.PRIVATE_EQUITY)
+    boxplot(InvestmentTypes.SEED, 0, 0, axis, funding_by_investment_without_outliers)
+    boxplot(InvestmentTypes.ANGEL, 0, 1, axis, funding_by_investment_without_outliers)
+    boxplot(InvestmentTypes.VENTURE, 1, 0, axis, funding_by_investment_without_outliers)
+    boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_without_outliers)
     plt.show()
 
 def analyse():
@@ -129,6 +114,11 @@ def analyse():
     master_funding = merge_companies_rounds(companies, rounds)
     print(len(master_funding))
     analyse_investment_types(master_funding)
+
+    # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
+    # Fill in Table
+    # Based on the most representative investment amount calculated above, which investment type do you think is the most suitable for Spark Funds?
+    # Private Equity
 
 def clean_permalinks(companies, rounds2):
     # Fix inconsistent Data
