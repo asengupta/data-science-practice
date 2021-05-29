@@ -18,6 +18,9 @@ ORGANIZATION = "/organization/"
 def sanitized(s):
     return s.replace(" ", "-").replace(".", "-")
 
+def with_organization_prefix(s):
+    return f"{ORGANIZATION}{s}"
+
 def pattern_for_rounds_matching(company_name):
     return f'{ORGANIZATION}{sanitized(company_name.lower())}'
 
@@ -79,21 +82,21 @@ def clean_permalinks(companies, rounds2):
     fix_permalink_from_rounds("Boréal Bikes Incorporated")
     fix_permalink_from_rounds("Tío Conejo")
     fix_permalink_from_rounds("Monnier Frères")
-    fix_permalink_from_rounds("Affluent Attaché Club", locator=constant("/organization/affluent-attaché-club-2"))
+    fix_permalink_from_rounds("Affluent Attaché Club", locator=constant(with_organization_prefix("affluent-attaché-club-2")))
     fix_permalink_from_rounds("Jean Pütz Produkte")
     fix_permalink_from_rounds("PatroFİN")
     fix_permalink_from_rounds("Salão VIP")
     fix_permalink_from_rounds("Proděti.cz")
-    fix_permalink_from_rounds("LawPadi", locator=constant("/organization/lawpàdí"))
+    fix_permalink_from_rounds("LawPadi", locator=constant(with_organization_prefix("lawpàdí")))
     fix_permalink_from_rounds("eTool.io")
-    fix_permalink_from_rounds("Crème & Ciseaux", locator=constant("/organization/crème-ciseaux"))
+    fix_permalink_from_rounds("Crème & Ciseaux", locator=constant(with_organization_prefix("crème-ciseaux")))
     fix_permalink_from_rounds("Prześwietl.pl")
     fix_permalink_from_rounds("Capptú")
     fix_permalink_from_rounds("Gráfica en línea")
     fix_permalink_from_rounds("IGNIA Bienes Raíces")
     fix_permalink_from_rounds("Bricoprivé.com")
-    fix_permalink_from_rounds("Médica Santa Carmen", locator=constant("/organization/médica-santa-carmen-2"))
-    fix_permalink_from_rounds("E CÚBICA", locator=constant("/organization/e-cêbica"))
+    fix_permalink_from_rounds("Médica Santa Carmen", locator=constant(with_organization_prefix("médica-santa-carmen-2")))
+    fix_permalink_from_rounds("E CÚBICA", locator=constant(with_organization_prefix("e-cêbica")))
     fix_permalink_from_rounds("Vá de Táxi")
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds2)
     fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds2)
@@ -123,7 +126,7 @@ def clean_permalinks(companies, rounds2):
 
 
 def regenerate_permalink(company_name_prefix, full_company_name, companies, rounds2,
-                         optional_organization_prefix="/organization/"):
+                         optional_organization_prefix=ORGANIZATION):
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_NAME
 
