@@ -83,23 +83,25 @@ def analyse():
     fix_zengame(companies, rounds2, "TipCat Interactive", "TipCat Interactive 沙舟信息科技")
     fix_zengame(companies, rounds2, "Jiwu", "Jiwu 吉屋网")
     fix_zengame(companies, rounds2, "TalentSigned", "TalentSigned™")
+    fix_zengame(companies, rounds2, "Asiansbook", "Asiansbook™")
+    fix_zengame(companies, rounds2, "Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", "")
 
     x, y = uniques(companies, rounds2)
     print(set(y).difference(set(x)))
 
-def fix_zengame(companies, rounds2, company_name_prefix, full_company_name):
+def fix_zengame(companies, rounds2, company_name_prefix, full_company_name, optional_organization_prefix="/organization/"):
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_NAME
 
-    zengame = companies[companies[COMPANIES_NAME].str.startswith(company_name_prefix, na=False)]
-    correct_name = zengame.iloc[0][COMPANIES_NAME]
+    # zengame = companies[companies[COMPANIES_NAME].str.startswith(company_name_prefix, na=False)]
+    # # correct_name = zengame.iloc[0][COMPANIES_NAME]
     # result = re.compile(f"{original_company_name_prefix} (.*)").search(correct_name)
     dashed_company_name_prefix = company_name_prefix.replace(' ', '-')
     dashed_lowercase_full_company_name = full_company_name.replace(' ', '-').replace('.', ' ').lower()
     corrected_permalink_lowercase = (f'/organization/{dashed_lowercase_full_company_name}').lower()
     print(corrected_permalink_lowercase)
     companies.loc[companies[COMPANIES_NAME].str.contains(full_company_name, na=False), COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
-    rounds2.loc[rounds2[ROUNDS2_COMPANY_PERMALINK].str.contains(f'/organization/{dashed_company_name_prefix}',
+    rounds2.loc[rounds2[ROUNDS2_COMPANY_PERMALINK].str.contains(f'{optional_organization_prefix}{dashed_company_name_prefix}',
                                                                 na=False, case=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
     # print(companies.iloc[65778])
     print(companies[companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
