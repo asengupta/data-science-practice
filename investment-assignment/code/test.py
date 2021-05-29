@@ -20,6 +20,12 @@ def pattern_for_rounds_matching(company_name):
 def constant(x):
     return lambda company_name: x
 
+
+def merge_companies_rounds(companies, rounds):
+    print(len(companies))
+    print(len(rounds))
+    return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
+
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_COMPANY_PERMALINK
@@ -28,16 +34,16 @@ def analyse():
 
     companies = pd.read_csv("../data/companies.csv")
     mapping = pd.read_csv("../data/mapping.csv")
-    rounds2 = pd.read_csv("../data/rounds2.csv")
+    rounds = pd.read_csv("../data/rounds2.csv")
     print(companies.columns)
     print(mapping.columns)
-    print(rounds2.columns)
+    print(rounds.columns)
 
     # Fix case
-    rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds2[ROUNDS2_COMPANY_PERMALINK].str.lower()
+    rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[ROUNDS2_COMPANY_PERMALINK].str.lower()
     companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[COMPANIES_COMPANY_PERMALINK].str.lower()
-    unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds2)
-    # How many unique companies are present in rounds2?
+    unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
+    # How many unique companies are present in rounds?
     print(len(unique_companies_in_rounds2))
 
     # How many unique companies are present in companies?
@@ -46,7 +52,7 @@ def analyse():
     # In the companies data frame, which column can be used as the unique key for each company? Write the name of the column.
     # permalink
 
-    # Are there any companies in the rounds2 file which are not present in companies? Answer yes or no: Y/N
+    # Are there any companies in the rounds file which are not present in companies? Answer yes or no: Y/N
     companies_not_in_companies = set(unique_companies_in_rounds2).difference(set(unique_companies_in_companies))
     companies_not_in_rounds2 = set(unique_companies_in_companies).difference(set(unique_companies_in_rounds2))
     print(len(companies_not_in_companies))
@@ -54,8 +60,9 @@ def analyse():
     # print(len(companies_not_in_rounds2))
     # YES
 
-    clean_permalinks(companies, rounds2)
-
+    clean_permalinks(companies, rounds)
+    master_funding = merge_companies_rounds(companies, rounds)
+    print(len(master_funding))
 
 def clean_permalinks(companies, rounds2):
     # Fix inconsistent Data
