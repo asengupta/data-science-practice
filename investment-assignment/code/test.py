@@ -96,6 +96,7 @@ def analyse():
 
     x, y = uniques(companies, rounds2)
     print(set(y).difference(set(x)))
+    print(set(x).difference(set(y)))
 
 def regenerate_permalink(company_name_prefix, full_company_name, companies, rounds2,
                          optional_organization_prefix="/organization/"):
