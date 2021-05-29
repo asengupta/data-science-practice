@@ -49,8 +49,10 @@ def merge_companies_rounds(companies, rounds):
     return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
 
 
-def boxplot(investment_type):
-    pass
+def boxplot(investment_type, x, y, axis, stuff):
+    print(len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD]))
+    print(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median())
+    axis[x,y].boxplot(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])
 
 
 def analyse_investment_types(master_funding):
@@ -67,23 +69,26 @@ def analyse_investment_types(master_funding):
     # stuff = funding_by_investment_type.transform(lambda g: g[(g[Columns.RAISED_AMOUNT_USD] > 10)])
     # stuff = funding_by_investment_type.apply(lambda g: g[g[Columns.RAISED_AMOUNT_USD] < 100000000000])
     # print(funding_by_investment_type.describe().to_string())
-    print(stuff)
-    # boxplot(InvestmentTypes.SEED)
-    print(len(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD]))
-    print(len(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD]))
-    print(len(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD]))
-    print(len(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD]))
-    print(funding_by_investment_type.describe())
+    # print(stuff)
+    # print(len(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD]))
+    # print(len(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD]))
+    # print(len(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD]))
+    # print(len(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD]))
+    # print(funding_by_investment_type.describe())
     # funding_by_investment_type.boxplot(column=Columns.RAISED_AMOUNT_USD)
     figure, axis = plt.subplots(2, 2)
-    axis[0,0].boxplot(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD])
-    axis[0,0].set_title(InvestmentTypes.SEED)
-    axis[0,1].boxplot(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD])
-    axis[0,1].set_title(InvestmentTypes.ANGEL)
-    axis[1,0].boxplot(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD])
-    axis[1,0].set_title(InvestmentTypes.VENTURE)
-    axis[1,1].boxplot(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD])
-    axis[1,1].set_title(InvestmentTypes.PRIVATE_EQUITY)
+    boxplot(InvestmentTypes.SEED, 0, 0, axis, stuff)
+    boxplot(InvestmentTypes.ANGEL, 0, 1, axis, stuff)
+    boxplot(InvestmentTypes.VENTURE, 1, 0, axis, stuff)
+    boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, stuff)
+    # axis[0,0].boxplot(stuff.loc[InvestmentTypes.SEED, Columns.RAISED_AMOUNT_USD])
+    # axis[0,0].set_title(InvestmentTypes.SEED)
+    # axis[0,1].boxplot(stuff.loc[InvestmentTypes.ANGEL, Columns.RAISED_AMOUNT_USD])
+    # axis[0,1].set_title(InvestmentTypes.ANGEL)
+    # axis[1,0].boxplot(stuff.loc[InvestmentTypes.VENTURE, Columns.RAISED_AMOUNT_USD])
+    # axis[1,0].set_title(InvestmentTypes.VENTURE)
+    # axis[1,1].boxplot(stuff.loc[InvestmentTypes.PRIVATE_EQUITY, Columns.RAISED_AMOUNT_USD])
+    # axis[1,1].set_title(InvestmentTypes.PRIVATE_EQUITY)
     plt.show()
 
 def analyse():
