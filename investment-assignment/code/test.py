@@ -13,9 +13,13 @@ COMPANIES_COMPANY_PERMALINK = "permalink"
 ROUNDS2_COMPANY_PERMALINK_LOWERCASE = "company_permalink_lowercase"
 COMPANIES_COMPANY_PERMALINK_LOWERCASE = "permalink_lowercase"
 COMPANIES_NAME = "name"
+ORGANIZATION = "/organization/"
+
+def sanitized(s):
+    return s.replace(" ", "-").replace(".", "-")
 
 def pattern_for_rounds_matching(company_name):
-    return f'/organization/{company_name.lower().replace(" ", "-").replace(".", "-")}'
+    return f'{ORGANIZATION}{sanitized(company_name.lower())}'
 
 def constant(x):
     return lambda company_name: x
@@ -25,6 +29,10 @@ def merge_companies_rounds(companies, rounds):
     print(len(companies))
     print(len(rounds))
     return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
+
+
+def analyse_investment_types(master_funding):
+    print(master_funding["funding_round_type"].unique())
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -63,6 +71,7 @@ def analyse():
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
     print(len(master_funding))
+    analyse_investment_types(master_funding)
 
 def clean_permalinks(companies, rounds2):
     # Fix inconsistent Data
@@ -118,8 +127,8 @@ def regenerate_permalink(company_name_prefix, full_company_name, companies, roun
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_NAME
 
-    dashed_company_name_prefix = company_name_prefix.replace(' ', '-').replace('.', '-')
-    dashed_lowercase_full_company_name = full_company_name.replace(' ', '-').replace('.', '-').lower()
+    dashed_company_name_prefix = sanitized(company_name_prefix)
+    dashed_lowercase_full_company_name = sanitized(full_company_name).lower()
     corrected_permalink_lowercase = (f'/organization/{dashed_lowercase_full_company_name}').lower()
     print(corrected_permalink_lowercase)
     companies.loc[companies[COMPANIES_NAME].str.contains(full_company_name, na=False), COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
