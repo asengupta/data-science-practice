@@ -14,6 +14,12 @@ ROUNDS2_COMPANY_PERMALINK_LOWERCASE = "company_permalink_lowercase"
 COMPANIES_COMPANY_PERMALINK_LOWERCASE = "permalink_lowercase"
 COMPANIES_NAME = "name"
 
+def pattern_for_rounds_matching(company_name):
+    return f'/organization/{company_name.lower().replace(" ", "-").replace(".", "-")}'
+
+def constant(x):
+    return lambda company_name: x
+
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_COMPANY_PERMALINK
@@ -49,26 +55,26 @@ def analyse():
     # YES
 
     #Fix inconsistent Data
-    fix_permalink_from_rounds("Boréal Bikes Incorporated", "/organization/boréal-bikes-incorporated", companies,
-                              rounds2)
-    fix_permalink_from_rounds("Tío Conejo", "/organization/tío-conejo", companies, rounds2)
-    fix_permalink_from_rounds("Monnier Frères", "/organization/monnier-frères", companies, rounds2)
-    fix_permalink_from_rounds("Affluent Attaché Club", "/organization/affluent-attaché-club-2", companies, rounds2)
-    fix_permalink_from_rounds("Jean Pütz Produkte", "/organization/jean-pütz-produkte", companies, rounds2)
-    fix_permalink_from_rounds("PatroFİN", "/organization/patrofi̇n", companies, rounds2)
-    fix_permalink_from_rounds("Salão VIP", "/organization/salão-vip", companies, rounds2)
-    fix_permalink_from_rounds("Proděti.cz", "/organization/proděti-cz", companies, rounds2)
-    fix_permalink_from_rounds("LawPadi", "/organization/lawpàdí", companies, rounds2)
-    fix_permalink_from_rounds("eTool.io", "/organization/etool-io", companies, rounds2)
-    fix_permalink_from_rounds("Crème & Ciseaux", "/organization/crème-ciseaux", companies, rounds2)
-    fix_permalink_from_rounds("Prześwietl.pl", "/organization/prześwietl-pl", companies, rounds2)
-    fix_permalink_from_rounds("Capptú", "/organization/capptú", companies, rounds2)
-    fix_permalink_from_rounds("Gráfica en línea", "/organization/gráfica-en-línea", companies, rounds2)
-    fix_permalink_from_rounds("IGNIA Bienes Raíces", "/organization/ignia-bienes-raíces", companies, rounds2)
-    fix_permalink_from_rounds("Bricoprivé.com", "/organization/bricoprivé-com", companies, rounds2)
-    fix_permalink_from_rounds("Médica Santa Carmen", "/organization/médica-santa-carmen-2", companies, rounds2)
-    fix_permalink_from_rounds("E CÚBICA", "/organization/e-cêbica", companies, rounds2)
-    fix_permalink_from_rounds("Vá de Táxi", "/organization/vá-de-táxi", companies, rounds2)
+    fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds2)
+    fix_permalink_from_rounds("Boréal Bikes Incorporated")
+    fix_permalink_from_rounds("Tío Conejo")
+    fix_permalink_from_rounds("Monnier Frères")
+    fix_permalink_from_rounds("Affluent Attaché Club", locator = constant("/organization/affluent-attaché-club-2"))
+    fix_permalink_from_rounds("Jean Pütz Produkte")
+    fix_permalink_from_rounds("PatroFİN")
+    fix_permalink_from_rounds("Salão VIP")
+    fix_permalink_from_rounds("Proděti.cz")
+    fix_permalink_from_rounds("LawPadi", locator = constant("/organization/lawpàdí"))
+    fix_permalink_from_rounds("eTool.io")
+    fix_permalink_from_rounds("Crème & Ciseaux", locator = constant("/organization/crème-ciseaux"))
+    fix_permalink_from_rounds("Prześwietl.pl")
+    fix_permalink_from_rounds("Capptú")
+    fix_permalink_from_rounds("Gráfica en línea")
+    fix_permalink_from_rounds("IGNIA Bienes Raíces")
+    fix_permalink_from_rounds("Bricoprivé.com")
+    fix_permalink_from_rounds("Médica Santa Carmen", locator = constant("/organization/médica-santa-carmen-2"))
+    fix_permalink_from_rounds("E CÚBICA", locator = constant("/organization/e-cêbica"))
+    fix_permalink_from_rounds("Vá de Táxi")
 
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds2)
     fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds2)
@@ -113,14 +119,18 @@ def regenerate_permalink(company_name_prefix, full_company_name, companies, roun
     print(companies[companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
     print(rounds2[rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
 
-def fix_permalink_from_rounds(company_name, company_permalink, companies, rounds):
-    global COMPANIES_NAME
+def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, companies, rounds):
+    def fix_permalink_from_rounds_inner(company_name, locator = company_permalink_locator_in_round):
+        company_permalink_from_rounds = locator(company_name)
+        global COMPANIES_NAME
 
-    correct_value_rows = rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == company_permalink]
-    corrected_value = correct_value_rows.iloc[0][ROUNDS2_COMPANY_PERMALINK_LOWERCASE]
-    companies.loc[companies[COMPANIES_NAME] == company_name, COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_value
-    print(companies[companies[COMPANIES_NAME] == company_name].to_string())
-    print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
+        correct_value_rows = rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == company_permalink_from_rounds]
+        corrected_value = correct_value_rows.iloc[0][ROUNDS2_COMPANY_PERMALINK_LOWERCASE]
+        companies.loc[companies[COMPANIES_NAME] == company_name, COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_value
+        print(companies[companies[COMPANIES_NAME] == company_name].to_string())
+        print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
+
+    return fix_permalink_from_rounds_inner
 
 def fix_permalink_from_companies(company_name, rounds_permalink_fragment, companies, rounds, truth_column = COMPANIES_COMPANY_PERMALINK_LOWERCASE):
     global COMPANIES_NAME
