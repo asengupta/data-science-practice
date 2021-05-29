@@ -51,7 +51,8 @@ def merge_companies_rounds(companies, rounds):
     return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
 
 def boxplot(investment_type, x, y, axis, stuff):
-    print(f"Statistics for {investment_type} investments: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].describe().apply(lambda x: format(x, 'f'))}")
+    print(f"Statistics for {investment_type} investments:")
+    print(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].describe().apply(lambda x: format(x, 'f')))
     # print(f"Number of {investment_type} investments: {len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])}" )
     # print(f"Median investment oof type {investment_type}: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median()}" )
     axis[x,y].boxplot(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])
@@ -63,7 +64,8 @@ def analyse_investment_types(master_funding):
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.SEED) |
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE) |
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.PRIVATE_EQUITY)]
-    print(len(investments_with_4_types))
+    print(f"Only English Investments of 4 Types: {len(investments_with_4_types)}")
+
     funding_amounts_with_investment_types = investments_with_4_types[[Columns.FUNDING_ROUND_TYPE, Columns.RAISED_AMOUNT_USD]]
 
     # Remove outliers
@@ -77,6 +79,13 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.VENTURE, 1, 0, axis, funding_by_investment_without_outliers)
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_without_outliers)
     plt.show()
+
+
+def filter_english_speaking_countries(fundings):
+    only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
+    print(f"English Company Investments: {len(only_english_company_investments)}")
+    print(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
+    return only_english_company_investments
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -92,7 +101,6 @@ def analyse():
     print(rounds.columns)
 
     # Fix case
-    print(set(companies[Columns.COUNTRY_CODE].unique()))
     rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[ROUNDS2_COMPANY_PERMALINK].str.lower()
     companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[COMPANIES_COMPANY_PERMALINK].str.lower()
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
@@ -115,8 +123,9 @@ def analyse():
 
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
-    print(len(master_funding))
-    analyse_investment_types(master_funding)
+    english_master_funding = filter_english_speaking_countries(master_funding)
+    print(f"Only English Investments: {len(english_master_funding)}")
+    analyse_investment_types(english_master_funding)
 
     # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
     # Fill in Table
