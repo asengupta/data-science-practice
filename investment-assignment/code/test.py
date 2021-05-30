@@ -158,6 +158,11 @@ def sectorwise_stats(country_code, investments):
     print(sectorwise_investment_statistics)
     return sectorwise_investment_statistics
 
+
+def fix_case(companies, rounds):
+    companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[Columns.COMPANIES_COMPANY_PERMALINK].str.lower()
+    rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[Columns.ROUNDS2_COMPANY_PERMALINK].str.lower()
+
 def analyse():
     companies = pd.read_csv("../data/companies.csv")
     rounds = pd.read_csv("../data/rounds2.csv")
@@ -169,9 +174,9 @@ def analyse():
     sector_map = mapping_dict(mapping)
 
     # Fix case
-    rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[Columns.ROUNDS2_COMPANY_PERMALINK].str.lower()
-    companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[Columns.COMPANIES_COMPANY_PERMALINK].str.lower()
+    fix_case(companies, rounds)
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
+
     # How many unique companies are present in rounds?
     print(len(unique_companies_in_rounds2))
 
@@ -212,7 +217,10 @@ def analyse():
     # Fill Top 3 Countries from the Above List
 
     print(english_venture_investments_with_outliers[Columns.MAIN_SECTOR].head(10))
-    aggregate_investment_stats_by_country, d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats = heavily_invested_sectors(english_venture_investments_with_outliers, top9)
+    aggregate_investment_stats_by_country, \
+    d1_sectorwise_stats, \
+    d2_sectorwise_stats, \
+    d3_sectorwise_stats = heavily_invested_sectors(english_venture_investments_with_outliers, top9)
 
 
 def setup_sectors(master_funding, sector_map):
