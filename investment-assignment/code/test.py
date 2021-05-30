@@ -139,7 +139,7 @@ def analyse():
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
     master_funding[Columns.PRIMARY_SECTOR] = master_funding[Columns.CATEGORY_LIST].str.split("|").apply(lambda splits: splits[0] if isinstance(splits, list) else EMPTY_STRING)
-    master_funding[Columns.MAIN_SECTOR] = master_funding[Columns.PRIMARY_SECTOR].apply(lambda primary_sector: sector_map[primary_sector])
+    master_funding[Columns.MAIN_SECTOR] = master_funding[Columns.PRIMARY_SECTOR].apply(lambda primary_sector: sector_map[primary_sector] )
     print("MASTER FUNDING")
     print(master_funding.head(10))
     print("-----------------------------------------")
@@ -174,6 +174,51 @@ def mapping_dict(mapping):
     for pair in mappings_as_list:
         print(pair)
         mapping_as_dict[pair[0] if isinstance(pair[0], str) else EMPTY_STRING] = pair[1]
+    mapping_as_dict["Self Development"] = "Others"
+    mapping_as_dict["Cause Marketing"] = "Others"
+    mapping_as_dict["Real Estate Investors"] = "Others"
+    mapping_as_dict["English-Speaking"] = "Others"
+    mapping_as_dict["Navigation"] = "Others"
+    mapping_as_dict["Deep Information Technology"] = "Others"
+    mapping_as_dict["Toys"] = "Others"
+    mapping_as_dict["Generation Y-Z"] = "Others"
+    mapping_as_dict["Spas"] = "Others"
+    mapping_as_dict["Enterprise Hardware"] = "Others"
+    mapping_as_dict["Social Media Advertising"] = "Social, Finance, Analytics, Advertising"
+    mapping_as_dict["Darknet"] = "Others"
+    mapping_as_dict["Natural Gas Uses"] = "Others"
+    mapping_as_dict["Natural Language Processing"] = "Social, Finance, Analytics, Advertising"
+    mapping_as_dict["Internet Technology"] = "Others"
+    mapping_as_dict["Nightlife"] = "Social, Finance, Analytics, Advertising"
+    mapping_as_dict["Adaptive Equipment"] = "Others"
+    mapping_as_dict["Enterprise 2.0"] = "Others"
+    mapping_as_dict["Natural Resources"] = "Others"
+    mapping_as_dict["Tutoring"] = "Others"
+    mapping_as_dict["Internet TV"] = "Entertainment"
+    mapping_as_dict["Skill Gaming"] = "Entertainment"
+    mapping_as_dict["Racing"] = "Entertainment"
+    mapping_as_dict["Specialty Retail"] = "Others"
+    mapping_as_dict["Swimming"] = "Health"
+    mapping_as_dict["Registrars"] = "Others"
+    mapping_as_dict["Golf Equipment"] = "Entertainment"
+    mapping_as_dict["Biotechnology and Semiconductor"] = "Cleantech / Semiconductors"
+    mapping_as_dict["Vacation Rentals"] = "Others"
+    mapping_as_dict["Google Glass"] = "Others"
+    mapping_as_dict["Rapidly Expanding"] = "Others"
+    mapping_as_dict["Infrastructure Builders"] = "Others"
+    mapping_as_dict["Group Email"] = "News, Search and Messaging"
+    mapping_as_dict["Kinect"] = "Entertainment"
+    mapping_as_dict["Product Search"] = "News, Search and Messaging"
+    mapping_as_dict["Sex Industry"] = "Entertainment"
+    mapping_as_dict["Psychology"] = "Others"
+    mapping_as_dict["Testing"] = "Others"
+    mapping_as_dict["GreenTech"] = "Cleantech / Semiconductors"
+    mapping_as_dict["Subscription Businesses"] = "Others"
+    mapping_as_dict["Retirement"] = "Others"
+    mapping_as_dict["Lingerie"] = "Others"
+    mapping_as_dict["Experience Design"] = "Others"
+    mapping_as_dict["Mobile Emergency&Health"] = "Health"
+    mapping_as_dict["Sponsorship"] = "Others"
     print("Mapping is:")
     print(mapping_as_dict)
     return mapping_as_dict
