@@ -8,12 +8,6 @@ import scipy as scp
 from scipy import stats
 
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ', 'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT', 'MHL', 'MUS', 'FSM', 'NAM', 'NRU', 'NGA', 'PAK', 'PLW', 'PNG', 'PHL', 'KNA', 'LCA', 'VCT', 'WSM', 'SYC', 'SLE', 'SGP', 'SLB', 'ZAF', 'SSD', 'SDN', 'TZA', 'TON', 'TTO', 'TUV', 'VUT', 'ZMB', 'ZWE', 'BHR', 'BGD', 'BRN', 'KHM', 'CYP', 'ERI', 'ETH', 'ISR', 'JOR', 'KWT', 'MYS', 'MDV', 'MMR', 'OMN', 'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
-ROUNDS2_COMPANY_PERMALINK = "company_permalink"
-COMPANIES_COMPANY_PERMALINK = "permalink"
-
-ROUNDS2_COMPANY_PERMALINK_LOWERCASE = "company_permalink_lowercase"
-COMPANIES_COMPANY_PERMALINK_LOWERCASE = "permalink_lowercase"
-COMPANIES_NAME = "name"
 ORGANIZATION = "/organization/"
 
 class Columns:
@@ -48,7 +42,7 @@ def constant(x):
 def merge_companies_rounds(companies, rounds):
     print(f"Number of Companies: {len(companies)}")
     print(f"Number of Rounds: {len(rounds)}")
-    return pd.merge(companies, rounds, left_on = COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
+    return pd.merge(companies, rounds, left_on = Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE, right_on = Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
 
 def boxplot(investment_type, x, y, axis, stuff):
     print(f"Statistics for {investment_type} investments:")
@@ -105,8 +99,8 @@ def analyse():
     print(rounds.columns)
 
     # Fix case
-    rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[ROUNDS2_COMPANY_PERMALINK].str.lower()
-    companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[COMPANIES_COMPANY_PERMALINK].str.lower()
+    rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[Columns.ROUNDS2_COMPANY_PERMALINK].str.lower()
+    companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = companies[Columns.COMPANIES_COMPANY_PERMALINK].str.lower()
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
     # How many unique companies are present in rounds?
     print(len(unique_companies_in_rounds2))
@@ -197,40 +191,40 @@ def regenerate_permalink(company_name_prefix, full_company_name, companies, roun
     dashed_lowercase_full_company_name = sanitized(full_company_name).lower()
     corrected_permalink_lowercase = (f'/organization/{dashed_lowercase_full_company_name}').lower()
     print(corrected_permalink_lowercase)
-    companies.loc[companies[COMPANIES_NAME].str.contains(full_company_name, na=False), COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
-    rounds2.loc[rounds2[ROUNDS2_COMPANY_PERMALINK].str.contains(f'{optional_organization_prefix}{dashed_company_name_prefix}',
-                                                                na=False, case=False, regex=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
-    print(companies[companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
-    print(rounds2[rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
+    companies.loc[companies[Columns.COMPANIES_NAME].str.contains(full_company_name, na=False), Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
+    rounds2.loc[rounds2[Columns.ROUNDS2_COMPANY_PERMALINK].str.contains(f'{optional_organization_prefix}{dashed_company_name_prefix}',
+                                                                na=False, case=False, regex=False), Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
+    print(companies[companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
+    print(rounds2[rounds2[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False, case=False)])
 
 def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, companies, rounds):
     def fix_permalink_from_rounds_inner(company_name, locator = company_permalink_locator_in_round):
         company_permalink_from_rounds = locator(company_name)
         global COMPANIES_NAME
 
-        correct_value_rows = rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == company_permalink_from_rounds]
-        corrected_value = correct_value_rows.iloc[0][ROUNDS2_COMPANY_PERMALINK_LOWERCASE]
-        companies.loc[companies[COMPANIES_NAME] == company_name, COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_value
-        print(companies[companies[COMPANIES_NAME] == company_name].to_string())
-        print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
+        correct_value_rows = rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == company_permalink_from_rounds]
+        corrected_value = correct_value_rows.iloc[0][Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE]
+        companies.loc[companies[Columns.COMPANIES_NAME] == company_name, Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_value
+        print(companies[companies[Columns.COMPANIES_NAME] == company_name].to_string())
+        print(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
 
     return fix_permalink_from_rounds_inner
 
-def fix_permalink_from_companies(company_name, rounds_permalink_fragment, companies, rounds, truth_column = COMPANIES_COMPANY_PERMALINK_LOWERCASE):
+def fix_permalink_from_companies(company_name, rounds_permalink_fragment, companies, rounds, truth_column = Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE):
     global COMPANIES_NAME
 
-    correct_value_rows = companies[companies[COMPANIES_NAME] == company_name]
+    correct_value_rows = companies[companies[Columns.COMPANIES_NAME] == company_name]
     lowercase_corrected_value = correct_value_rows.iloc[0][truth_column].lower()
-    rounds.loc[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(rounds_permalink_fragment, na=False, case=False, regex=False), ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = lowercase_corrected_value
+    rounds.loc[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(rounds_permalink_fragment, na=False, case=False, regex=False), Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = lowercase_corrected_value
     print(companies[companies[truth_column] == lowercase_corrected_value].to_string())
-    print(rounds[rounds[ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
+    print(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
 
 def unique_companies(companies, rounds2):
     global ROUNDS2_COMPANY_PERMALINK_LOWERCASE
     global COMPANIES_COMPANY_PERMALINK_LOWERCASE
 
-    unique_companies_in_rounds2 = rounds2[ROUNDS2_COMPANY_PERMALINK_LOWERCASE].unique()
-    unique_companies_in_companies = companies[COMPANIES_COMPANY_PERMALINK_LOWERCASE].unique()
+    unique_companies_in_rounds2 = rounds2[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].unique()
+    unique_companies_in_companies = companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].unique()
     return unique_companies_in_companies, unique_companies_in_rounds2
 
 analyse()
