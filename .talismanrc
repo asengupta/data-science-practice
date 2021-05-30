@@ -3,3 +3,7 @@ fileignoreconfig:
   checksum: 3ed9586f52753a8f6c1b98d2cb0d26b09345729e29eec645fc4bf324865bb38f
 - filename: investment-assignment/data/rounds2.csv
   checksum: 5a010be7539248ea4d3af7708c547512f24aec5aaa957a1e92bf01a9c8667c71
+- filename: investment-assignment/data/country-codes.html
+  checksum: 8679374c8492db49ff7401106b92fb9d102b1401c606dafbabb2b4d250b8deb3
+- filename: investment-assignment/data/language-countries.html
+  checksum: 8c59b3ebd4c014283b328384e3b489f0eeb77097b7c9af1bd7e33e169c5e0c60
