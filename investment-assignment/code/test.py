@@ -82,8 +82,13 @@ def filter_english_speaking_countries(fundings):
 
 
 def analyse_top_9_countries(investments):
-    pass
-
+    aggregator = {}
+    aggregator[Columns.RAISED_AMOUNT_USD] = "sum"
+    investments_by_country = investments.groupby(Columns.COUNTRY_CODE)
+    sorted_countrywise_investments = investments_by_country.agg(aggregator).reset_index(level=0, inplace=False).sort_values(by=Columns.RAISED_AMOUNT_USD, ascending = False)
+    print(f"Countrywise Investments:")
+    print(sorted_countrywise_investments)
+    return sorted_countrywise_investments.head(9)
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -131,7 +136,9 @@ def analyse():
     # Venture Investments
     english_venture_investments_with_outliers = english_master_funding[english_master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
     print(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
-    analyse_top_9_countries(english_venture_investments_with_outliers)
+    top9 = analyse_top_9_countries(english_venture_investments_with_outliers)
+    print("Top 9 Countrywise Investments:")
+    print(top9)
 
 def clean_permalinks(companies, rounds):
     # Fix inconsistent Data
