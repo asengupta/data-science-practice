@@ -74,14 +74,14 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_without_outliers)
     plt.show()
 
-def filter_english_speaking_countries(fundings):
+def english_speaking_countries(fundings):
     only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
     print(f"English Company Investments: {len(only_english_company_investments)}")
     print(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
     return only_english_company_investments
 
 
-def analyse_top_9_countries(investments):
+def top_9_countries(investments):
     aggregator = {}
     aggregator[Columns.RAISED_AMOUNT_USD] = "sum"
     investments_by_country = investments.groupby(Columns.COUNTRY_CODE)
@@ -126,7 +126,7 @@ def analyse():
 
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
-    english_master_funding = filter_english_speaking_countries(master_funding)
+    english_master_funding = english_speaking_countries(master_funding)
     print(f"Only English Investments: {len(english_master_funding)}")
     analyse_investment_types(english_master_funding)
 
@@ -136,9 +136,11 @@ def analyse():
     # Venture Investments
     english_venture_investments_with_outliers = english_master_funding[english_master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
     print(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
-    top9 = analyse_top_9_countries(english_venture_investments_with_outliers)
+    top9 = top_9_countries(english_venture_investments_with_outliers)
     print("Top 9 Countrywise Investments:")
     print(top9)
+    # Fill Top 3 Countries from the Above List
+    with_sectors
 
 def clean_permalinks(companies, rounds):
     # Fix inconsistent Data
