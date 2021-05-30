@@ -141,7 +141,7 @@ def heavily_invested_sectors(investments, top9):
     d3_sectorwise_statistics = sectorwise_stats(country_3, D3)
 
 
-    return aggregate_investment_stats_by_country, d1_sectorwise_statistics, d2_sectorwise_statistics, d3_sectorwise_statistics
+    return aggregate_investment_stats_by_country, d1_sectorwise_statistics, d2_sectorwise_statistics, d3_sectorwise_statistics, D1, D2, D3
 
 def aggregate_investment_stats(country_code, country_investment_table):
     return [country_code, country_investment_table[Columns.RAISED_AMOUNT_USD].sum(), len(country_investment_table)]
@@ -156,7 +156,7 @@ def sectorwise_stats(country_code, investments):
     print(f"SECTORWISE_INVESTMENT_STATISTICS for {country_code}")
     print("---------------------------------------------")
     print(sectorwise_investment_statistics)
-    return sectorwise_investment_statistics
+    return sectorwise_investment_statistics.reset_index()
 
 
 def fix_case(companies, rounds):
@@ -220,8 +220,31 @@ def analyse():
     aggregate_investment_stats_by_country, \
     d1_sectorwise_stats, \
     d2_sectorwise_stats, \
-    d3_sectorwise_stats = heavily_invested_sectors(english_venture_investments_with_outliers, top9)
+    d3_sectorwise_stats, \
+    D1, \
+    D2, \
+    D3 = heavily_invested_sectors(english_venture_investments_with_outliers, top9)
 
+    most_invested_company_in_ranked_sector(0, D1, d1_sectorwise_stats)
+    most_invested_company_in_ranked_sector(1, D1, d1_sectorwise_stats)
+    print("-------------------------------------------------------------------")
+    most_invested_company_in_ranked_sector(0, D2, d2_sectorwise_stats)
+    most_invested_company_in_ranked_sector(1, D2, d2_sectorwise_stats)
+    print("-------------------------------------------------------------------")
+    most_invested_company_in_ranked_sector(0, D3, d3_sectorwise_stats)
+    most_invested_company_in_ranked_sector(1, D3, d3_sectorwise_stats)
+    print("-------------------------------------------------------------------")
+
+
+def most_invested_company_in_ranked_sector(sector_rank, investments_for_country, country_sectorwise_stats):
+    ranked_sector_in_country = country_sectorwise_stats[Columns.MAIN_SECTOR].iloc[sector_rank]
+    sorted_investments_in_top_sector_for_country = investments_for_country[investments_for_country[Columns.MAIN_SECTOR] == ranked_sector_in_country].sort_values(
+        by=Columns.RAISED_AMOUNT_USD)
+    country_code = sorted_investments_in_top_sector_for_country[Columns.COUNTRY_CODE].iloc[0]
+    most_invested_company = sorted_investments_in_top_sector_for_country[Columns.COMPANIES_NAME].iloc[0]
+    investment_in_most_invested_company = sorted_investments_in_top_sector_for_country[Columns.RAISED_AMOUNT_USD].iloc[0]
+    print(f"MOST INVESTED COMPANY IN {country_code} for sector {ranked_sector_in_country}, ranked #{sector_rank + 1}: {most_invested_company}")
+    return [country_code, ranked_sector_in_country, sector_rank, most_invested_company, investment_in_most_invested_company]
 
 def setup_sectors(master_funding, sector_map):
     master_funding[Columns.PRIMARY_SECTOR] = master_funding[Columns.CATEGORY_LIST].str.split("|").apply(
