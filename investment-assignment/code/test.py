@@ -11,8 +11,11 @@ from scipy import stats
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ', 'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT', 'MHL', 'MUS', 'FSM', 'NAM', 'NRU', 'NGA', 'PAK', 'PLW', 'PNG', 'PHL', 'KNA', 'LCA', 'VCT', 'WSM', 'SYC', 'SLE', 'SGP', 'SLB', 'ZAF', 'SSD', 'SDN', 'TZA', 'TON', 'TTO', 'TUV', 'VUT', 'ZMB', 'ZWE', 'BHR', 'BGD', 'BRN', 'KHM', 'CYP', 'ERI', 'ETH', 'ISR', 'JOR', 'KWT', 'MYS', 'MDV', 'MMR', 'OMN', 'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
 ORGANIZATION = "/organization/"
 EMPTY_STRING = ""
+OTHERS = "Others"
 
 class Columns:
+    TOTAL_INVESTMENT_AMOUNT = "total_investment_amount"
+    NUMBER_OF_INVESTMENTS = "number_of_investments"
     ROUNDS2_COMPANY_PERMALINK = "company_permalink"
     COMPANIES_COMPANY_PERMALINK = "permalink"
     ROUNDS2_COMPANY_PERMALINK_LOWERCASE = "company_permalink_lowercase"
@@ -97,8 +100,53 @@ def top_9_countries(investments):
     return sorted_countrywise_investments.head(9)
 
 
-def with_sectors(english_venture_investments_with_outliers):
-    pass
+def heavily_invested_sectors(investments, top9):
+    print(top9)
+    country_1 = top9[Columns.COUNTRY_CODE].iloc[0]
+    country_2 = top9[Columns.COUNTRY_CODE].iloc[1]
+    country_3 = top9[Columns.COUNTRY_CODE].iloc[2]
+
+    print(f"{country_1}-{country_2}-{country_3}")
+    D1 = investments[(investments[Columns.COUNTRY_CODE] ==country_1) &
+                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
+                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
+    D2 = investments[(investments[Columns.COUNTRY_CODE] ==country_2) &
+                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
+                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
+    D3 = investments[(investments[Columns.COUNTRY_CODE] ==country_3) &
+                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
+                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
+
+    print(f"1. {country_1}: {len(D1)}")
+    print(f"2. {country_2}: {len(D2)}")
+    print(f"3. {country_3}: {len(D3)}")
+
+    data = [aggregate_investment_stats(country_1, D1),
+            aggregate_investment_stats(country_2, D2),
+            aggregate_investment_stats(country_3, D3)]
+    aggregate_investment_stats_by_country = pd.DataFrame(data, columns = [Columns.COUNTRY_CODE, Columns.TOTAL_INVESTMENT_AMOUNT, Columns.NUMBER_OF_INVESTMENTS])
+    print("AGGREGATE_INVESTMENT_STATS_BY_COUNTRY:")
+    print("--------------------------------------")
+    print(aggregate_investment_stats_by_country)
+
+    d1_sectorwise_statistics = sectorwise_stats(country_1, D1)
+    d2_sectorwise_statistics = sectorwise_stats(country_2, D2)
+    d3_sectorwise_statistics = sectorwise_stats(country_3, D3)
+
+    return aggregate_investment_stats_by_country, d1_sectorwise_statistics, d2_sectorwise_statistics, d3_sectorwise_statistics
+
+def aggregate_investment_stats(country_code, country_investment_table):
+    return [country_code, country_investment_table[Columns.RAISED_AMOUNT_USD].sum(), len(country_investment_table)]
+
+def sectorwise_stats(country_code, investments):
+    investments_by_main_sector = investments.groupby(Columns.MAIN_SECTOR)
+    dict = {}
+    dict[Columns.RAISED_AMOUNT_USD] = ["sum", "count"]
+    sectorwise_investment_statistics = investments_by_main_sector.agg(dict)
+    print(f"SECTORWISE_INVESTMENT_STATISTICS for {country_code}")
+    print("---------------------------------------------")
+    print(sectorwise_investment_statistics)
+    return sectorwise_investment_statistics
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -138,8 +186,7 @@ def analyse():
 
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
-    master_funding[Columns.PRIMARY_SECTOR] = master_funding[Columns.CATEGORY_LIST].str.split("|").apply(lambda splits: splits[0] if isinstance(splits, list) else EMPTY_STRING)
-    master_funding[Columns.MAIN_SECTOR] = master_funding[Columns.PRIMARY_SECTOR].apply(lambda primary_sector: sector_map[primary_sector] )
+    setup_sectors(master_funding, sector_map)
     print("MASTER FUNDING")
     print(master_funding.head(10))
     print("-----------------------------------------")
@@ -156,8 +203,18 @@ def analyse():
     top9 = top_9_countries(english_venture_investments_with_outliers)
     print("Top 9 Countrywise Investments:")
     print(top9)
+    print("---------------------------------------------")
     # Fill Top 3 Countries from the Above List
-    english_venture_investments_with_outliers_with_sectors = with_sectors(english_venture_investments_with_outliers)
+
+    print(english_venture_investments_with_outliers[Columns.MAIN_SECTOR].head(10))
+    aggregate_investment_stats_by_country, d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats = heavily_invested_sectors(english_venture_investments_with_outliers, top9)
+
+
+def setup_sectors(master_funding, sector_map):
+    master_funding[Columns.PRIMARY_SECTOR] = master_funding[Columns.CATEGORY_LIST].str.split("|").apply(
+        lambda splits: splits[0] if isinstance(splits, list) else EMPTY_STRING)
+    master_funding[Columns.MAIN_SECTOR] = master_funding[Columns.PRIMARY_SECTOR].apply(
+        lambda primary_sector: sector_map[primary_sector])
 
 
 def mapping_dict(mapping):
@@ -174,51 +231,51 @@ def mapping_dict(mapping):
     for pair in mappings_as_list:
         print(pair)
         mapping_as_dict[pair[0] if isinstance(pair[0], str) else EMPTY_STRING] = pair[1]
-    mapping_as_dict["Self Development"] = "Others"
-    mapping_as_dict["Cause Marketing"] = "Others"
-    mapping_as_dict["Real Estate Investors"] = "Others"
-    mapping_as_dict["English-Speaking"] = "Others"
-    mapping_as_dict["Navigation"] = "Others"
-    mapping_as_dict["Deep Information Technology"] = "Others"
-    mapping_as_dict["Toys"] = "Others"
-    mapping_as_dict["Generation Y-Z"] = "Others"
-    mapping_as_dict["Spas"] = "Others"
-    mapping_as_dict["Enterprise Hardware"] = "Others"
+    mapping_as_dict["Self Development"] = OTHERS
+    mapping_as_dict["Cause Marketing"] = OTHERS
+    mapping_as_dict["Real Estate Investors"] = OTHERS
+    mapping_as_dict["English-Speaking"] = OTHERS
+    mapping_as_dict["Navigation"] = OTHERS
+    mapping_as_dict["Deep Information Technology"] = OTHERS
+    mapping_as_dict["Toys"] = OTHERS
+    mapping_as_dict["Generation Y-Z"] = OTHERS
+    mapping_as_dict["Spas"] = OTHERS
+    mapping_as_dict["Enterprise Hardware"] = OTHERS
     mapping_as_dict["Social Media Advertising"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Darknet"] = "Others"
-    mapping_as_dict["Natural Gas Uses"] = "Others"
+    mapping_as_dict["Darknet"] = OTHERS
+    mapping_as_dict["Natural Gas Uses"] = OTHERS
     mapping_as_dict["Natural Language Processing"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Internet Technology"] = "Others"
+    mapping_as_dict["Internet Technology"] = OTHERS
     mapping_as_dict["Nightlife"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Adaptive Equipment"] = "Others"
-    mapping_as_dict["Enterprise 2.0"] = "Others"
-    mapping_as_dict["Natural Resources"] = "Others"
-    mapping_as_dict["Tutoring"] = "Others"
+    mapping_as_dict["Adaptive Equipment"] = OTHERS
+    mapping_as_dict["Enterprise 2.0"] = OTHERS
+    mapping_as_dict["Natural Resources"] = OTHERS
+    mapping_as_dict["Tutoring"] = OTHERS
     mapping_as_dict["Internet TV"] = "Entertainment"
     mapping_as_dict["Skill Gaming"] = "Entertainment"
     mapping_as_dict["Racing"] = "Entertainment"
-    mapping_as_dict["Specialty Retail"] = "Others"
+    mapping_as_dict["Specialty Retail"] = OTHERS
     mapping_as_dict["Swimming"] = "Health"
-    mapping_as_dict["Registrars"] = "Others"
+    mapping_as_dict["Registrars"] = OTHERS
     mapping_as_dict["Golf Equipment"] = "Entertainment"
     mapping_as_dict["Biotechnology and Semiconductor"] = "Cleantech / Semiconductors"
-    mapping_as_dict["Vacation Rentals"] = "Others"
-    mapping_as_dict["Google Glass"] = "Others"
-    mapping_as_dict["Rapidly Expanding"] = "Others"
-    mapping_as_dict["Infrastructure Builders"] = "Others"
+    mapping_as_dict["Vacation Rentals"] = OTHERS
+    mapping_as_dict["Google Glass"] = OTHERS
+    mapping_as_dict["Rapidly Expanding"] = OTHERS
+    mapping_as_dict["Infrastructure Builders"] = OTHERS
     mapping_as_dict["Group Email"] = "News, Search and Messaging"
     mapping_as_dict["Kinect"] = "Entertainment"
     mapping_as_dict["Product Search"] = "News, Search and Messaging"
     mapping_as_dict["Sex Industry"] = "Entertainment"
-    mapping_as_dict["Psychology"] = "Others"
-    mapping_as_dict["Testing"] = "Others"
+    mapping_as_dict["Psychology"] = OTHERS
+    mapping_as_dict["Testing"] = OTHERS
     mapping_as_dict["GreenTech"] = "Cleantech / Semiconductors"
-    mapping_as_dict["Subscription Businesses"] = "Others"
-    mapping_as_dict["Retirement"] = "Others"
-    mapping_as_dict["Lingerie"] = "Others"
-    mapping_as_dict["Experience Design"] = "Others"
+    mapping_as_dict["Subscription Businesses"] = OTHERS
+    mapping_as_dict["Retirement"] = OTHERS
+    mapping_as_dict["Lingerie"] = OTHERS
+    mapping_as_dict["Experience Design"] = OTHERS
     mapping_as_dict["Mobile Emergency&Health"] = "Health"
-    mapping_as_dict["Sponsorship"] = "Others"
+    mapping_as_dict["Sponsorship"] = OTHERS
     print("Mapping is:")
     print(mapping_as_dict)
     return mapping_as_dict
