@@ -20,6 +20,9 @@ class Columns:
     FUNDING_ROUND_TYPE = "funding_round_type"
     RAISED_AMOUNT_USD = "raised_amount_usd"
     COUNTRY_CODE = "country_code"
+    CATEGORY_LIST = "category_list"
+    VALUE = "value"
+    VARIABLE = "variable"
 
 class InvestmentTypes:
     SEED = "seed"
@@ -90,6 +93,11 @@ def top_9_countries(investments):
     print(sorted_countrywise_investments)
     return sorted_countrywise_investments.head(9)
 
+
+def with_sectors(english_venture_investments_with_outliers):
+    pass
+
+
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
     global COMPANIES_COMPANY_PERMALINK
@@ -97,11 +105,13 @@ def analyse():
     global COMPANIES_COMPANY_PERMALINK_LOWERCASE
 
     companies = pd.read_csv("../data/companies.csv")
-    mapping = pd.read_csv("../data/mapping.csv")
     rounds = pd.read_csv("../data/rounds2.csv")
+    mapping = pd.read_csv("../data/mapping.csv")
     print(companies.columns)
     print(mapping.columns)
     print(rounds.columns)
+
+    sector_map = mapping_dict(mapping)
 
     # Fix case
     rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[Columns.ROUNDS2_COMPANY_PERMALINK].str.lower()
@@ -140,7 +150,18 @@ def analyse():
     print("Top 9 Countrywise Investments:")
     print(top9)
     # Fill Top 3 Countries from the Above List
-    with_sectors
+    english_venture_investments_with_outliers_with_sectors = with_sectors(english_venture_investments_with_outliers)
+
+
+def mapping_dict(mapping):
+    mapping = mapping.melt([Columns.CATEGORY_LIST])
+    mapping = mapping[mapping[Columns.VALUE] == 1][[Columns.CATEGORY_LIST, Columns.VARIABLE]]
+    mappings_as_list = mapping.values.tolist()
+    mapping_as_dict = {}
+    for pair in mappings_as_list:
+        mapping_as_dict[pair[0]] = pair[1]
+    print(mapping_as_dict)
+    return mapping_as_dict
 
 def clean_permalinks(companies, rounds):
     # Fix inconsistent Data
