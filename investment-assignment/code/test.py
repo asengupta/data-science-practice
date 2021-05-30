@@ -1,3 +1,4 @@
+import math
 import re
 from functools import reduce
 import numpy as np
@@ -9,6 +10,7 @@ from scipy import stats
 
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ', 'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT', 'MHL', 'MUS', 'FSM', 'NAM', 'NRU', 'NGA', 'PAK', 'PLW', 'PNG', 'PHL', 'KNA', 'LCA', 'VCT', 'WSM', 'SYC', 'SLE', 'SGP', 'SLB', 'ZAF', 'SSD', 'SDN', 'TZA', 'TON', 'TTO', 'TUV', 'VUT', 'ZMB', 'ZWE', 'BHR', 'BGD', 'BRN', 'KHM', 'CYP', 'ERI', 'ETH', 'ISR', 'JOR', 'KWT', 'MYS', 'MDV', 'MMR', 'OMN', 'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
 ORGANIZATION = "/organization/"
+EMPTY_STRING = ""
 
 class Columns:
     ROUNDS2_COMPANY_PERMALINK = "company_permalink"
@@ -23,6 +25,8 @@ class Columns:
     CATEGORY_LIST = "category_list"
     VALUE = "value"
     VARIABLE = "variable"
+    PRIMARY_SECTOR = "primary_sector"
+    MAIN_SECTOR = "main_sector"
 
 class InvestmentTypes:
     SEED = "seed"
@@ -83,7 +87,6 @@ def english_speaking_countries(fundings):
     print(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
     return only_english_company_investments
 
-
 def top_9_countries(investments):
     aggregator = {}
     aggregator[Columns.RAISED_AMOUNT_USD] = "sum"
@@ -96,7 +99,6 @@ def top_9_countries(investments):
 
 def with_sectors(english_venture_investments_with_outliers):
     pass
-
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -136,6 +138,11 @@ def analyse():
 
     clean_permalinks(companies, rounds)
     master_funding = merge_companies_rounds(companies, rounds)
+    master_funding[Columns.PRIMARY_SECTOR] = master_funding[Columns.CATEGORY_LIST].str.split("|").apply(lambda splits: splits[0] if isinstance(splits, list) else EMPTY_STRING)
+    master_funding[Columns.MAIN_SECTOR] = master_funding[Columns.PRIMARY_SECTOR].apply(lambda primary_sector: sector_map[primary_sector])
+    print("MASTER FUNDING")
+    print(master_funding.head(10))
+    print("-----------------------------------------")
     english_master_funding = english_speaking_countries(master_funding)
     print(f"Only English Investments: {len(english_master_funding)}")
     analyse_investment_types(english_master_funding)
@@ -155,11 +162,19 @@ def analyse():
 
 def mapping_dict(mapping):
     mapping = mapping.melt([Columns.CATEGORY_LIST])
+
+    # Cleaning data
+    # mapping.loc[mapping[Columns.CATEGORY_LIST] == "A0lytics", Columns.CATEGORY_LIST] = "Analytics"
+    mapping[Columns.CATEGORY_LIST] = mapping[Columns.CATEGORY_LIST].str.replace("0", "na")
+    mapping.loc[mapping[Columns.CATEGORY_LIST] == "nanotechnology", Columns.CATEGORY_LIST] = "Nanotechnology"
+
     mapping = mapping[mapping[Columns.VALUE] == 1][[Columns.CATEGORY_LIST, Columns.VARIABLE]]
     mappings_as_list = mapping.values.tolist()
     mapping_as_dict = {}
     for pair in mappings_as_list:
-        mapping_as_dict[pair[0]] = pair[1]
+        print(pair)
+        mapping_as_dict[pair[0] if isinstance(pair[0], str) else EMPTY_STRING] = pair[1]
+    print("Mapping is:")
     print(mapping_as_dict)
     return mapping_as_dict
 
@@ -203,7 +218,7 @@ def clean_permalinks(companies, rounds):
     regenerate_permalink("Jiwu", "Jiwu 吉屋网", companies, rounds)
     regenerate_permalink("TalentSigned", "TalentSigned™", companies, rounds)
     regenerate_permalink("Asiansbook", "Asiansbook™", companies, rounds)
-    regenerate_permalink("Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", companies, rounds, "")
+    regenerate_permalink("Reklam-Ve-Tan", "İnovatiff Reklam ve Tanıtım Hizmetleri Tic", companies, rounds, EMPTY_STRING)
     regenerate_permalink("thế-giới-di", "The Gioi Di Dong", companies,
                          rounds)  # This permalink is mangled in both data sets, generated new permalink
     regenerate_permalink("k��k", "KÖÖK", companies, rounds)
