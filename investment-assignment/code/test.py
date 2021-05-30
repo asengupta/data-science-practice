@@ -11,7 +11,14 @@ from scipy import stats
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ', 'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT', 'MHL', 'MUS', 'FSM', 'NAM', 'NRU', 'NGA', 'PAK', 'PLW', 'PNG', 'PHL', 'KNA', 'LCA', 'VCT', 'WSM', 'SYC', 'SLE', 'SGP', 'SLB', 'ZAF', 'SSD', 'SDN', 'TZA', 'TON', 'TTO', 'TUV', 'VUT', 'ZMB', 'ZWE', 'BHR', 'BGD', 'BRN', 'KHM', 'CYP', 'ERI', 'ETH', 'ISR', 'JOR', 'KWT', 'MYS', 'MDV', 'MMR', 'OMN', 'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
 ORGANIZATION = "/organization/"
 EMPTY_STRING = ""
-OTHERS = "Others"
+class MainSectors:
+    OTHERS = "Others"
+    HEALTH = "Health"
+    MANUFACTURING = "Manufacturing"
+    SOCIAL_FINANCE_ANALYTICS_ADVERTISING = "Social, Finance, Analytics, Advertising"
+    ENTERTAINMENT = "Entertainment"
+    NEWS_SEARCH_MESSAGING = "News, Search and Messaging"
+    CLEANTECH_SEMICONDUCTORS = "Cleantech / Semiconductors"
 
 class Columns:
     TOTAL_INVESTMENT_AMOUNT = "total_investment_amount"
@@ -133,6 +140,7 @@ def heavily_invested_sectors(investments, top9):
     d2_sectorwise_statistics = sectorwise_stats(country_2, D2)
     d3_sectorwise_statistics = sectorwise_stats(country_3, D3)
 
+
     return aggregate_investment_stats_by_country, d1_sectorwise_statistics, d2_sectorwise_statistics, d3_sectorwise_statistics
 
 def aggregate_investment_stats(country_code, country_investment_table):
@@ -143,6 +151,8 @@ def sectorwise_stats(country_code, investments):
     dict = {}
     dict[Columns.RAISED_AMOUNT_USD] = ["sum", "count"]
     sectorwise_investment_statistics = investments_by_main_sector.agg(dict)
+    sectorwise_investment_statistics.columns = sectorwise_investment_statistics.columns.droplevel(0)
+    sectorwise_investment_statistics = sectorwise_investment_statistics.sort_values(by="count", ascending=False)
     print(f"SECTORWISE_INVESTMENT_STATISTICS for {country_code}")
     print("---------------------------------------------")
     print(sectorwise_investment_statistics)
@@ -224,6 +234,9 @@ def mapping_dict(mapping):
     # mapping.loc[mapping[Columns.CATEGORY_LIST] == "A0lytics", Columns.CATEGORY_LIST] = "Analytics"
     mapping[Columns.CATEGORY_LIST] = mapping[Columns.CATEGORY_LIST].str.replace("0", "na")
     mapping.loc[mapping[Columns.CATEGORY_LIST] == "nanotechnology", Columns.CATEGORY_LIST] = "Nanotechnology"
+    mapping.loc[mapping[Columns.CATEGORY_LIST] == "natural Language Processing", Columns.CATEGORY_LIST] = "Natural Language Processing"
+    mapping.loc[mapping[Columns.CATEGORY_LIST] == "natural Resources", Columns.CATEGORY_LIST] = "Natural Resources"
+    mapping.loc[mapping[Columns.CATEGORY_LIST] == "navigation", Columns.CATEGORY_LIST] = "Navigation"
 
     mapping = mapping[mapping[Columns.VALUE] == 1][[Columns.CATEGORY_LIST, Columns.VARIABLE]]
     mappings_as_list = mapping.values.tolist()
@@ -231,51 +244,51 @@ def mapping_dict(mapping):
     for pair in mappings_as_list:
         print(pair)
         mapping_as_dict[pair[0] if isinstance(pair[0], str) else EMPTY_STRING] = pair[1]
-    mapping_as_dict["Self Development"] = OTHERS
-    mapping_as_dict["Cause Marketing"] = OTHERS
-    mapping_as_dict["Real Estate Investors"] = OTHERS
-    mapping_as_dict["English-Speaking"] = OTHERS
-    mapping_as_dict["Navigation"] = OTHERS
-    mapping_as_dict["Deep Information Technology"] = OTHERS
-    mapping_as_dict["Toys"] = OTHERS
-    mapping_as_dict["Generation Y-Z"] = OTHERS
-    mapping_as_dict["Spas"] = OTHERS
-    mapping_as_dict["Enterprise Hardware"] = OTHERS
-    mapping_as_dict["Social Media Advertising"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Darknet"] = OTHERS
-    mapping_as_dict["Natural Gas Uses"] = OTHERS
-    mapping_as_dict["Natural Language Processing"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Internet Technology"] = OTHERS
-    mapping_as_dict["Nightlife"] = "Social, Finance, Analytics, Advertising"
-    mapping_as_dict["Adaptive Equipment"] = OTHERS
-    mapping_as_dict["Enterprise 2.0"] = OTHERS
-    mapping_as_dict["Natural Resources"] = OTHERS
-    mapping_as_dict["Tutoring"] = OTHERS
-    mapping_as_dict["Internet TV"] = "Entertainment"
-    mapping_as_dict["Skill Gaming"] = "Entertainment"
-    mapping_as_dict["Racing"] = "Entertainment"
-    mapping_as_dict["Specialty Retail"] = OTHERS
-    mapping_as_dict["Swimming"] = "Health"
-    mapping_as_dict["Registrars"] = OTHERS
-    mapping_as_dict["Golf Equipment"] = "Entertainment"
-    mapping_as_dict["Biotechnology and Semiconductor"] = "Cleantech / Semiconductors"
-    mapping_as_dict["Vacation Rentals"] = OTHERS
-    mapping_as_dict["Google Glass"] = OTHERS
-    mapping_as_dict["Rapidly Expanding"] = OTHERS
-    mapping_as_dict["Infrastructure Builders"] = OTHERS
-    mapping_as_dict["Group Email"] = "News, Search and Messaging"
-    mapping_as_dict["Kinect"] = "Entertainment"
-    mapping_as_dict["Product Search"] = "News, Search and Messaging"
-    mapping_as_dict["Sex Industry"] = "Entertainment"
-    mapping_as_dict["Psychology"] = OTHERS
-    mapping_as_dict["Testing"] = OTHERS
-    mapping_as_dict["GreenTech"] = "Cleantech / Semiconductors"
-    mapping_as_dict["Subscription Businesses"] = OTHERS
-    mapping_as_dict["Retirement"] = OTHERS
-    mapping_as_dict["Lingerie"] = OTHERS
-    mapping_as_dict["Experience Design"] = OTHERS
-    mapping_as_dict["Mobile Emergency&Health"] = "Health"
-    mapping_as_dict["Sponsorship"] = OTHERS
+    mapping_as_dict["Self Development"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Cause Marketing"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Real Estate Investors"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["English-Speaking"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Navigation"] = MainSectors.OTHERS
+    mapping_as_dict["Deep Information Technology"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Toys"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Generation Y-Z"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Spas"] = MainSectors.HEALTH
+    mapping_as_dict["Enterprise Hardware"] = MainSectors.OTHERS
+    mapping_as_dict["Social Media Advertising"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Darknet"] = MainSectors.OTHERS
+    mapping_as_dict["Natural Gas Uses"] = MainSectors.OTHERS
+    mapping_as_dict["Natural Language Processing"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Internet Technology"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Nightlife"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Adaptive Equipment"] = MainSectors.OTHERS
+    mapping_as_dict["Enterprise 2.0"] = MainSectors.NEWS_SEARCH_MESSAGING
+    mapping_as_dict["Natural Resources"] = MainSectors.OTHERS
+    mapping_as_dict["Tutoring"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Internet TV"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Skill Gaming"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Racing"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Specialty Retail"] = MainSectors.OTHERS
+    mapping_as_dict["Swimming"] = MainSectors.HEALTH
+    mapping_as_dict["Registrars"] = MainSectors.OTHERS
+    mapping_as_dict["Golf Equipment"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Biotechnology and Semiconductor"] = MainSectors.CLEANTECH_SEMICONDUCTORS
+    mapping_as_dict["Vacation Rentals"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Google Glass"] = MainSectors.NEWS_SEARCH_MESSAGING
+    mapping_as_dict["Rapidly Expanding"] = MainSectors.OTHERS
+    mapping_as_dict["Infrastructure Builders"] = MainSectors.MANUFACTURING
+    mapping_as_dict["Group Email"] = MainSectors.NEWS_SEARCH_MESSAGING
+    mapping_as_dict["Kinect"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Product Search"] = MainSectors.NEWS_SEARCH_MESSAGING
+    mapping_as_dict["Sex Industry"] = MainSectors.ENTERTAINMENT
+    mapping_as_dict["Psychology"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Testing"] = MainSectors.OTHERS
+    mapping_as_dict["GreenTech"] = MainSectors.CLEANTECH_SEMICONDUCTORS
+    mapping_as_dict["Subscription Businesses"] = MainSectors.NEWS_SEARCH_MESSAGING
+    mapping_as_dict["Retirement"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Lingerie"] = MainSectors.OTHERS
+    mapping_as_dict["Experience Design"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
+    mapping_as_dict["Mobile Emergency&Health"] = MainSectors.HEALTH
+    mapping_as_dict["Sponsorship"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
     print("Mapping is:")
     print(mapping_as_dict)
     return mapping_as_dict
