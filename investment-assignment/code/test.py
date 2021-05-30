@@ -80,12 +80,16 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_without_outliers)
     plt.show()
 
-
 def filter_english_speaking_countries(fundings):
     only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
     print(f"English Company Investments: {len(only_english_company_investments)}")
     print(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
     return only_english_company_investments
+
+
+def analyse_top_9_countries(investments):
+    pass
+
 
 def analyse():
     global ROUNDS2_COMPANY_PERMALINK
@@ -130,7 +134,10 @@ def analyse():
     # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
     # Fill in Table
     # Based on the most representative investment amount calculated above, which investment type do you think is the most suitable for Spark Funds?
-    # Private Equity
+    # Venture Investments
+    english_venture_investments_with_outliers = english_master_funding[english_master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
+    print(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
+    analyse_top_9_countries(english_venture_investments_with_outliers)
 
 def clean_permalinks(companies, rounds):
     # Fix inconsistent Data
