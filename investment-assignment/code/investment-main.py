@@ -111,10 +111,6 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.ANGEL, 0, 1, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.VENTURE, 1, 0, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_type_without_outliers)
-    f2, a2 = plt.subplots(2, 2)
-    a2[0, 0].set_title("LOL")
-    plt.show()
-
 
 def english_speaking_countries(fundings):
     only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
@@ -261,6 +257,33 @@ def analyse():
     most_invested_company_in_ranked_sector(0, D3, d3_sectorwise_stats)
     most_invested_company_in_ranked_sector(1, D3, d3_sectorwise_stats)
     print("-------------------------------------------------------------------")
+
+    f2, a2 = plt.subplots(1, 1)
+    a2.tick_params(labelrotation=90)
+    a2.set_title("LOL")
+    a2.bar(top9[Columns.COUNTRY_CODE], np.log10(top9[Columns.RAISED_AMOUNT_USD]))
+
+    f3, a3 = plt.subplots(1, 3)
+    plot_top_3_sectors_by_count(a3[0], d1_sectorwise_stats)
+    plot_top_3_sectors_by_count(a3[1], d2_sectorwise_stats)
+    plot_top_3_sectors_by_count(a3[2], d3_sectorwise_stats)
+
+    # a3[1].tick_params(labelrotation=90)
+    # a3[1].set_title("LOL")
+    # a3[1].bar(d2_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d2_sectorwise_stats["count"][:3]))
+    #
+    # a3[2].tick_params(labelrotation=90)
+    # a3[2].set_title("LOL")
+    # a3[2].bar(d3_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d3_sectorwise_stats["count"][:3]))
+
+    plt.subplots_adjust(hspace = 1.5)
+    plt.show()
+
+
+def plot_top_3_sectors_by_count(axes, d1_sectorwise_stats):
+    axes.tick_params(labelrotation=90)
+    axes.set_title("LOL")
+    axes.bar(d1_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d1_sectorwise_stats["count"][:3]))
 
 
 def most_invested_company_in_ranked_sector(sector_rank, investments_for_country, country_sectorwise_stats):
