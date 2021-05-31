@@ -1,13 +1,6 @@
-import math
-import random
-import re
-from functools import reduce
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sn
-import matplotlib.pyplot as plt
-import scipy as scp
-from scipy import stats
 
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ',
                      'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT',
@@ -104,7 +97,7 @@ def analyse_investment_types(master_funding):
     funding_by_investment_type = funding_amounts_with_investment_types.groupby(Columns.FUNDING_ROUND_TYPE)
     funding_by_investment_type_without_outliers = funding_by_investment_type.apply(lambda g: g[
         (g[Columns.RAISED_AMOUNT_USD] > g[Columns.RAISED_AMOUNT_USD].quantile(q=0.05)) & (
-                    g[Columns.RAISED_AMOUNT_USD] < g[Columns.RAISED_AMOUNT_USD].quantile(q=0.90))])
+                g[Columns.RAISED_AMOUNT_USD] < g[Columns.RAISED_AMOUNT_USD].quantile(q=0.90))])
 
     # Create boxplots
     figure, axis = plt.subplots(2, 2)
@@ -112,6 +105,7 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.ANGEL, 0, 1, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.VENTURE, 1, 0, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_type_without_outliers)
+
 
 def english_speaking_countries(fundings):
     only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
@@ -222,7 +216,8 @@ def analyse():
     # print(len(companies_not_in_rounds2))
     # YES
 
-    unique_companies_in_companies_after_cleanup, unique_companies_in_rounds2_after_cleanup = clean_permalinks(companies, rounds)
+    unique_companies_in_companies_after_cleanup, unique_companies_in_rounds2_after_cleanup = clean_permalinks(companies,
+                                                                                                              rounds)
     # How many unique companies are present in rounds?
     print(f"Unique companies in rounds2 (After Cleanup): {len(unique_companies_in_rounds2_after_cleanup)}")
 
@@ -268,7 +263,7 @@ def analyse():
     plot_top_9_countries_by_investment_amount(top9)
     plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats, D1, D2, D3)
 
-    plt.subplots_adjust(hspace = 1.5)
+    plt.subplots_adjust(hspace=1.5)
     plt.show()
 
 
