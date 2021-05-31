@@ -206,10 +206,10 @@ def analyse():
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
 
     # How many unique companies are present in rounds?
-    print(len(unique_companies_in_rounds2))
+    print(f"Unique companies in rounds2 (Before Cleanup): {len(unique_companies_in_rounds2)}")
 
     # How many unique companies are present in companies?
-    print(len(unique_companies_in_companies))
+    print(f"Unique companies in companies (Before Cleanup): {len(unique_companies_in_companies)}")
 
     # In the companies data frame, which column can be used as the unique key for each company? Write the name of the column.
     # permalink
@@ -222,13 +222,19 @@ def analyse():
     # print(len(companies_not_in_rounds2))
     # YES
 
-    clean_permalinks(companies, rounds)
-    master_funding = merge_companies_rounds(companies, rounds)
-    setup_sectors(master_funding, sector_map)
-    print("MASTER FUNDING")
-    print(master_funding.head(10))
+    unique_companies_in_companies_after_cleanup, unique_companies_in_rounds2_after_cleanup = clean_permalinks(companies, rounds)
+    # How many unique companies are present in rounds?
+    print(f"Unique companies in rounds2 (After Cleanup): {len(unique_companies_in_rounds2_after_cleanup)}")
+
+    # How many unique companies are present in companies?
+    print(f"Unique companies in companies (After Cleanup): {len(unique_companies_in_companies_after_cleanup)}")
+
+    master_frame = merge_companies_rounds(companies, rounds)
+    setup_sectors(master_frame, sector_map)
+    print(f"MASTER FUNDING FRAME: {len(master_frame)}")
+    print(master_frame.head(10))
     print("-----------------------------------------")
-    english_master_funding = english_speaking_countries(master_funding)
+    english_master_funding = english_speaking_countries(master_frame)
     print(f"Only English Investments: {len(english_master_funding)}")
     analyse_investment_types(english_master_funding)
 
@@ -422,9 +428,10 @@ def clean_permalinks(companies, rounds):
     regenerate_permalink("thế-giới-di", "The Gioi Di Dong", companies,
                          rounds)  # This permalink is mangled in both data sets, generated new permalink
     regenerate_permalink("k��k", "KÖÖK", companies, rounds)
-    x, y = unique_companies(companies, rounds)
-    print(set(y).difference(set(x)))
-    print(set(x).difference(set(y)))
+    unique_companies_in_companies, unique_companies_in_rounds = unique_companies(companies, rounds)
+    print(set(unique_companies_in_rounds).difference(set(unique_companies_in_companies)))
+    print(set(unique_companies_in_companies).difference(set(unique_companies_in_rounds)))
+    return unique_companies_in_companies, unique_companies_in_rounds
 
 
 def regenerate_permalink(company_name_prefix, full_company_name, companies, rounds2,
