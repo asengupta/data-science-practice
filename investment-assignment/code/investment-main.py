@@ -258,29 +258,28 @@ def analyse():
     most_invested_company_in_ranked_sector(1, D3, d3_sectorwise_stats)
     print("-------------------------------------------------------------------")
 
-    f2, a2 = plt.subplots(1, 1)
-    a2.tick_params(labelrotation=90)
-    a2.set_title("LOL")
-    a2.bar(top9[Columns.COUNTRY_CODE], np.log10(top9[Columns.RAISED_AMOUNT_USD]))
-
-    f3, a3 = plt.subplots(1, 3)
-    plot_top_3_sectors_by_count(a3[0], d1_sectorwise_stats)
-    plot_top_3_sectors_by_count(a3[1], d2_sectorwise_stats)
-    plot_top_3_sectors_by_count(a3[2], d3_sectorwise_stats)
-
-    # a3[1].tick_params(labelrotation=90)
-    # a3[1].set_title("LOL")
-    # a3[1].bar(d2_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d2_sectorwise_stats["count"][:3]))
-    #
-    # a3[2].tick_params(labelrotation=90)
-    # a3[2].set_title("LOL")
-    # a3[2].bar(d3_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d3_sectorwise_stats["count"][:3]))
+    plot_top_9_countries_by_investment_amount(top9)
+    plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats)
 
     plt.subplots_adjust(hspace = 1.5)
     plt.show()
 
 
-def plot_top_3_sectors_by_count(axes, d1_sectorwise_stats):
+def plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats):
+    f3, a3 = plt.subplots(1, 3)
+    plot_top_3_sectors_by_count_for_country(a3[0], d1_sectorwise_stats)
+    plot_top_3_sectors_by_count_for_country(a3[1], d2_sectorwise_stats)
+    plot_top_3_sectors_by_count_for_country(a3[2], d3_sectorwise_stats)
+
+
+def plot_top_9_countries_by_investment_amount(top9):
+    f2, a2 = plt.subplots(1, 1)
+    a2.tick_params(labelrotation=90)
+    a2.set_title("LOL")
+    a2.bar(top9[Columns.COUNTRY_CODE], np.log10(top9[Columns.RAISED_AMOUNT_USD]))
+
+
+def plot_top_3_sectors_by_count_for_country(axes, d1_sectorwise_stats):
     axes.tick_params(labelrotation=90)
     axes.set_title("LOL")
     axes.bar(d1_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d1_sectorwise_stats["count"][:3]))
