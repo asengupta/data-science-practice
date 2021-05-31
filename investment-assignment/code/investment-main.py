@@ -1,4 +1,5 @@
 import math
+import random
 import re
 from functools import reduce
 import numpy as np
@@ -259,29 +260,30 @@ def analyse():
     print("-------------------------------------------------------------------")
 
     plot_top_9_countries_by_investment_amount(top9)
-    plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats)
+    plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats, D1, D2, D3)
 
     plt.subplots_adjust(hspace = 1.5)
     plt.show()
 
 
-def plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats):
+def plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats, D1, D2, D3):
     f3, a3 = plt.subplots(1, 3)
-    plot_top_3_sectors_by_count_for_country(a3[0], d1_sectorwise_stats)
-    plot_top_3_sectors_by_count_for_country(a3[1], d2_sectorwise_stats)
-    plot_top_3_sectors_by_count_for_country(a3[2], d3_sectorwise_stats)
+    plot_top_3_sectors_by_count_for_country(a3[0], d1_sectorwise_stats, D1)
+    plot_top_3_sectors_by_count_for_country(a3[1], d2_sectorwise_stats, D2)
+    plot_top_3_sectors_by_count_for_country(a3[2], d3_sectorwise_stats, D3)
 
 
 def plot_top_9_countries_by_investment_amount(top9):
     f2, a2 = plt.subplots(1, 1)
     a2.tick_params(labelrotation=90)
-    a2.set_title("LOL")
-    a2.bar(top9[Columns.COUNTRY_CODE], np.log10(top9[Columns.RAISED_AMOUNT_USD]))
+    a2.set_title("Top 9 Countries by Investment Amount (Log Count)")
+    log_count = np.log10(top9[Columns.RAISED_AMOUNT_USD])
+    a2.bar(top9[Columns.COUNTRY_CODE], log_count)
 
 
-def plot_top_3_sectors_by_count_for_country(axes, d1_sectorwise_stats):
+def plot_top_3_sectors_by_count_for_country(axes, d1_sectorwise_stats, investments_for_country):
     axes.tick_params(labelrotation=90)
-    axes.set_title("LOL")
+    axes.set_title(f"Investment for {investments_for_country.iloc[0][Columns.COUNTRY_CODE]}")
     axes.bar(d1_sectorwise_stats[Columns.MAIN_SECTOR][:3], (d1_sectorwise_stats["count"][:3]))
 
 
