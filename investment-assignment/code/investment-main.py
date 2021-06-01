@@ -24,6 +24,7 @@
 import getopt
 import logging
 import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -580,13 +581,12 @@ def parse_commandline_options(args):
                 print(f"{option} was not recognised as a valid option")
                 print_help_text()
                 print("Allowing to continue since Jupyter notebook passes in other command-line options")
-                # exit(1)
-                # raise Exception(f"{option} was not recognised as a valid option")
         return companies_csv, rounds_csv, mappings_csv
     except getopt.GetoptError as e:
         sys.stderr.write("%s: %s\n" % (args[0], e.msg))
         print_help_text()
         exit(2)
+
 
 def print_help_text():
     print(
@@ -601,6 +601,7 @@ def read_csv(companies_csv, rounds_csv, mapping_csv):
     return companies, rounds, mapping
 
 
+# This function overrides Jupyter's default logger so that we can output things based on our formatting preferences
 def setup_logging():
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
