@@ -1,4 +1,7 @@
+import getopt
 import logging
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -37,6 +40,11 @@ ORGANIZATION = "/organization/"
 EMPTY_STRING = ""
 FIVE_MILLION = 5000000
 FIFTEEN_MILLION = 15000000
+
+DEFAULT_DATASET_LOCATION = "../data"
+DEFAULT_COMPANIES_CSV_LOCATION = "companies.csv"
+DEFAULT_ROUNDS2_CSV_LOCATION = "rounds2.csv"
+DEFAULT_MAPPING_CSV_LOCATION = "mapping.csv"
 
 
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
@@ -217,10 +225,7 @@ def fix_case(companies, rounds):
 
 
 # This is the main function which is invoked to run all the analyses and generate all the plots.
-def analyse():
-    companies = pd.read_csv("../data/companies.csv")
-    rounds = pd.read_csv("../data/rounds2.csv")
-    mapping = pd.read_csv("../data/mapping.csv")
+def analyse(companies, rounds, mapping):
     logging.debug(companies.columns)
     logging.debug(mapping.columns)
     logging.debug(rounds.columns)
@@ -487,11 +492,13 @@ def regenerate_permalink(company_name_prefix, full_company_name, companies, roun
     rounds2.loc[rounds2[Columns.ROUNDS2_COMPANY_PERMALINK].str.contains(
         f'{optional_organization_prefix}{dashed_company_name_prefix}',
         na=False, case=False, regex=False), Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
-    logging.debug(companies[companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase,
-                                                                                          na=False, case=False)])
+    logging.debug(
+        companies[companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase,
+                                                                                        na=False, case=False)])
     logging.debug(rounds2[
-              rounds2[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False,
-                                                                                case=False)])
+                      rounds2[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase,
+                                                                                        na=False,
+                                                                                        case=False)])
 
 
 # For **Pattern 1**, the permalinks in the *rounds2* dataset were copied over to the *companies* dataset, after using suitable search patterns.
@@ -527,4 +534,33 @@ def unique_companies(companies, rounds2):
     return unique_companies_in_companies, unique_companies_in_rounds2
 
 
-analyse()
+# This function reads file names for companies, rounds, and mapping if they need to be specified from the command line
+def parse_commandline_options(args):
+    companies_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_COMPANIES_CSV_LOCATION}"
+    rounds_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_ROUNDS2_CSV_LOCATION}"
+    mappings_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_MAPPING_CSV_LOCATION}"
+
+    options, arguments = getopt.getopt(args, "c:r:v:", ["companies=", "rounds=", "mappings="])
+    for option, argument in options:
+        if option in ("-c", "--companies"):
+            companies_csv = argument
+        if option in ("-r", "--rounds"):
+            rounds_csv = argument
+        if option in ("-m", "--mappings"):
+            mappings_csv = argument
+    return companies_csv, rounds_csv, mappings_csv
+
+
+def read_csv(companies_csv, rounds_csv, mapping_csv):
+    companies = pd.read_csv(companies_csv)
+    rounds = pd.read_csv(rounds_csv)
+    mapping = pd.read_csv(mapping_csv)
+
+    return companies, rounds, mapping
+
+
+def main():
+    analyse(*read_csv(*parse_commandline_options(sys.argv[1:])))
+
+
+main()
