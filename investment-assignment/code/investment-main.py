@@ -13,6 +13,7 @@ EMPTY_STRING = ""
 FIVE_MILLION = 5000000
 FIFTEEN_MILLION = 15000000
 
+
 class MainSectors:
     OTHERS = "Others"
     HEALTH = "Health"
@@ -127,10 +128,12 @@ def top_9_countries(investments):
     print(sorted_countrywise_investments)
     return sorted_countrywise_investments.head(9)
 
+
 def investments_for_country_with_investment_constraints(investments, country_code):
     return investments[(investments[Columns.COUNTRY_CODE] == country_code) &
                        (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
                        (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
+
 
 def heavily_invested_sectors(investments, top9):
     print(top9)
@@ -142,16 +145,6 @@ def heavily_invested_sectors(investments, top9):
     D1 = investments_for_country_with_investment_constraints(investments, country_1)
     D2 = investments_for_country_with_investment_constraints(investments, country_2)
     D3 = investments_for_country_with_investment_constraints(investments, country_3)
-
-    # D1 = investments[(investments[Columns.COUNTRY_CODE] == country_1) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
-    # D2 = investments[(investments[Columns.COUNTRY_CODE] == country_2) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
-    # D3 = investments[(investments[Columns.COUNTRY_CODE] == country_3) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
-    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
 
     print(f"1. {country_1}: {len(D1)}")
     print(f"2. {country_2}: {len(D2)}")
