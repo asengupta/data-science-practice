@@ -10,7 +10,8 @@ ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BW
                      'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
 ORGANIZATION = "/organization/"
 EMPTY_STRING = ""
-
+FIVE_MILLION = 5000000
+FIFTEEN_MILLION = 15000000
 
 class MainSectors:
     OTHERS = "Others"
@@ -105,6 +106,7 @@ def analyse_investment_types(master_funding):
     boxplot(InvestmentTypes.ANGEL, 0, 1, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.VENTURE, 1, 0, axis, funding_by_investment_type_without_outliers)
     boxplot(InvestmentTypes.PRIVATE_EQUITY, 1, 1, axis, funding_by_investment_type_without_outliers)
+    return investments_with_4_types
 
 
 def english_speaking_countries(fundings):
@@ -125,6 +127,10 @@ def top_9_countries(investments):
     print(sorted_countrywise_investments)
     return sorted_countrywise_investments.head(9)
 
+def investments_for_country_with_investment_constraints(investments, country_code):
+    return investments[(investments[Columns.COUNTRY_CODE] == country_code) &
+                       (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
+                       (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
 
 def heavily_invested_sectors(investments, top9):
     print(top9)
@@ -133,15 +139,19 @@ def heavily_invested_sectors(investments, top9):
     country_3 = top9[Columns.COUNTRY_CODE].iloc[2]
 
     print(f"{country_1}-{country_2}-{country_3}")
-    D1 = investments[(investments[Columns.COUNTRY_CODE] == country_1) &
-                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
-                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
-    D2 = investments[(investments[Columns.COUNTRY_CODE] == country_2) &
-                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
-                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
-    D3 = investments[(investments[Columns.COUNTRY_CODE] == country_3) &
-                     (investments[Columns.RAISED_AMOUNT_USD] >= 5000000) &
-                     (investments[Columns.RAISED_AMOUNT_USD] <= 15000000)]
+    D1 = investments_for_country_with_investment_constraints(investments, country_1)
+    D2 = investments_for_country_with_investment_constraints(investments, country_2)
+    D3 = investments_for_country_with_investment_constraints(investments, country_3)
+
+    # D1 = investments[(investments[Columns.COUNTRY_CODE] == country_1) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
+    # D2 = investments[(investments[Columns.COUNTRY_CODE] == country_2) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
+    # D3 = investments[(investments[Columns.COUNTRY_CODE] == country_3) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] >= FIVE_MILLION) &
+    #                  (investments[Columns.RAISED_AMOUNT_USD] <= FIFTEEN_MILLION)]
 
     print(f"1. {country_1}: {len(D1)}")
     print(f"2. {country_2}: {len(D2)}")
@@ -231,14 +241,14 @@ def analyse():
     print("-----------------------------------------")
     english_master_funding = english_speaking_countries(master_frame)
     print(f"Only English Investments: {len(english_master_funding)}")
-    analyse_investment_types(english_master_funding)
+    investments_english_4_types = analyse_investment_types(english_master_funding)
 
     # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
     # Fill in Table
     # Based on the most representative investment amount calculated above, which investment type do you think is the most suitable for Spark Funds?
     # Venture Investments
-    english_venture_investments_with_outliers = english_master_funding[
-        english_master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
+    english_venture_investments_with_outliers = investments_english_4_types[
+        investments_english_4_types[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
     print(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
     top9 = top_9_countries(english_venture_investments_with_outliers)
     print("Top 9 Countrywise Investments:")
