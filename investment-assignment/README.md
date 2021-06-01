@@ -15,6 +15,7 @@ The objective is to identify the **best sectors, countries, and a suitable inves
 - Company Profiles (Crunchbase)
 - Investment Rounds Data (Crunchbase)
 - Category Mapping
+- English-speaking Countries (Wikipedia)
 
 ## Data Understanding (CRISP-DM Step #2)
 To understand the shape of the data and its cleanliness, we perform a couple of preliminary checks on the *companies* and *rounds2* dataset.

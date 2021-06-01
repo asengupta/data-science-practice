@@ -9,3 +9,5 @@ fileignoreconfig:
   checksum: 8c59b3ebd4c014283b328384e3b489f0eeb77097b7c9af1bd7e33e169c5e0c60
 - filename: investment-assignment/notebook/investment.ipynb
   checksum: d0a9420bd70cdbefd2afc7bfb0d5adc7252ec2ab5a73d4c094ac30ffd592f42a
+- filename: investment-assignment/notebook/investment-main-p2j.ipynb
+  checksum: a9d1fde4a6333cc6b27d1a1afff8e7894c2cda611b3c55632091276ae8b75ead
