@@ -540,15 +540,31 @@ def parse_commandline_options(args):
     rounds_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_ROUNDS2_CSV_LOCATION}"
     mappings_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_MAPPING_CSV_LOCATION}"
 
-    options, arguments = getopt.getopt(args, "c:r:v:", ["companies=", "rounds=", "mappings="])
-    for option, argument in options:
-        if option in ("-c", "--companies"):
-            companies_csv = argument
-        if option in ("-r", "--rounds"):
-            rounds_csv = argument
-        if option in ("-m", "--mappings"):
-            mappings_csv = argument
-    return companies_csv, rounds_csv, mappings_csv
+    try:
+        options, arguments = getopt.getopt(args, "c:r:v:h", ["companies=", "rounds=", "mappings=", "help"])
+        for option, argument in options:
+            if option in ("-h", "--help"):
+                print_help_text()
+            elif option in ("-c", "--companies"):
+                companies_csv = argument
+            elif option in ("-r", "--rounds"):
+                rounds_csv = argument
+            elif option in ("-m", "--mappings"):
+                mappings_csv = argument
+            else:
+                print(f"{option} was not recognised as a valid option")
+                print_help_text()
+                exit(1)
+                # raise Exception(f"{option} was not recognised as a valid option")
+        return companies_csv, rounds_csv, mappings_csv
+    except getopt.GetoptError as e:
+        sys.stderr.write("%s: %s\n" % (args[0], e.msg))
+        print_help_text()
+        exit(2)
+
+def print_help_text():
+    print(
+        "USAGE: python investment-main.js [{-c |--companies=}<companies-csv>] [{-r |--rounds=}<rounds-csv>] [{-m |--mappings=}<mappings-csv>]")
 
 
 def read_csv(companies_csv, rounds_csv, mapping_csv):
