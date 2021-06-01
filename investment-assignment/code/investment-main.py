@@ -95,18 +95,18 @@ def constant(x):
 
 
 def merge_companies_rounds(companies, rounds):
-    print(f"Number of Companies: {len(companies)}")
-    print(f"Number of Rounds: {len(rounds)}")
+    logging.info(f"Number of Companies: {len(companies)}")
+    logging.info(f"Number of Rounds: {len(rounds)}")
     return pd.merge(companies, rounds, left_on=Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE,
                     right_on=Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE)
 
 
 def boxplot(investment_type, x, y, axis, funding_by_investment_type):
-    print(f"Statistics for {investment_type} investments:")
-    print(funding_by_investment_type.loc[investment_type, Columns.RAISED_AMOUNT_USD].describe().apply(
+    logging.info(f"Statistics for {investment_type} investments:")
+    logging.info(funding_by_investment_type.loc[investment_type, Columns.RAISED_AMOUNT_USD].describe().apply(
         lambda x: format(x, 'f')))
-    # print(f"Number of {investment_type} investments: {len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])}" )
-    # print(f"Median investment oof type {investment_type}: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median()}" )
+    # logging.info(f"Number of {investment_type} investments: {len(stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD])}" )
+    # logging.info(f"Median investment oof type {investment_type}: {stuff.loc[investment_type, Columns.RAISED_AMOUNT_USD].median()}" )
     axis[x, y].boxplot(funding_by_investment_type.loc[investment_type, Columns.RAISED_AMOUNT_USD])
     axis[x, y].set_title(investment_type)
 
@@ -118,7 +118,7 @@ def analyse_investment_types(master_funding):
                                               (master_funding[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE) |
                                               (master_funding[
                                                    Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.PRIVATE_EQUITY)]
-    print(f"Only English Investments of 4 Types: {len(investments_with_4_types)}")
+    logging.info(f"Only English Investments of 4 Types: {len(investments_with_4_types)}")
 
     funding_amounts_with_investment_types = investments_with_4_types[
         [Columns.FUNDING_ROUND_TYPE, Columns.RAISED_AMOUNT_USD]]
@@ -140,8 +140,8 @@ def analyse_investment_types(master_funding):
 
 def english_speaking_countries(fundings):
     only_english_company_investments = fundings[fundings[Columns.COUNTRY_CODE].isin(ENGLISH_COUNTRIES)]
-    print(f"English Company Investments: {len(only_english_company_investments)}")
-    print(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
+    logging.info(f"English Company Investments: {len(only_english_company_investments)}")
+    logging.info(f"Non-English Company Investments: {len(fundings) - len(only_english_company_investments)}")
     return only_english_company_investments
 
 
@@ -152,8 +152,8 @@ def top_9_countries(investments):
     sorted_countrywise_investments = investments_by_country.agg(aggregator).reset_index(level=0,
                                                                                         inplace=False).sort_values(
         by=Columns.RAISED_AMOUNT_USD, ascending=False)
-    print(f"Countrywise Investments:")
-    print(sorted_countrywise_investments)
+    logging.info(f"Countrywise Investments:")
+    logging.info(sorted_countrywise_investments)
     return sorted_countrywise_investments.head(9)
 
 
@@ -164,19 +164,19 @@ def investments_for_country_with_investment_constraints(investments, country_cod
 
 
 def heavily_invested_sectors(investments, top9):
-    print(top9)
+    logging.info(top9)
     country_1 = top9[Columns.COUNTRY_CODE].iloc[0]
     country_2 = top9[Columns.COUNTRY_CODE].iloc[1]
     country_3 = top9[Columns.COUNTRY_CODE].iloc[2]
 
-    print(f"{country_1}-{country_2}-{country_3}")
+    logging.info(f"{country_1}-{country_2}-{country_3}")
     D1 = investments_for_country_with_investment_constraints(investments, country_1)
     D2 = investments_for_country_with_investment_constraints(investments, country_2)
     D3 = investments_for_country_with_investment_constraints(investments, country_3)
 
-    print(f"1. {country_1}: {len(D1)}")
-    print(f"2. {country_2}: {len(D2)}")
-    print(f"3. {country_3}: {len(D3)}")
+    logging.info(f"1. {country_1}: {len(D1)}")
+    logging.info(f"2. {country_2}: {len(D2)}")
+    logging.info(f"3. {country_3}: {len(D3)}")
 
     data = [aggregate_investment_stats(country_1, D1),
             aggregate_investment_stats(country_2, D2),
@@ -184,9 +184,9 @@ def heavily_invested_sectors(investments, top9):
     aggregate_investment_stats_by_country = pd.DataFrame(data,
                                                          columns=[Columns.COUNTRY_CODE, Columns.TOTAL_INVESTMENT_AMOUNT,
                                                                   Columns.NUMBER_OF_INVESTMENTS])
-    print("AGGREGATE_INVESTMENT_STATS_BY_COUNTRY:")
-    print("--------------------------------------")
-    print(aggregate_investment_stats_by_country)
+    logging.info("AGGREGATE_INVESTMENT_STATS_BY_COUNTRY:")
+    logging.info("--------------------------------------")
+    logging.info(aggregate_investment_stats_by_country)
 
     d1_sectorwise_statistics = sectorwise_stats(country_1, D1)
     d2_sectorwise_statistics = sectorwise_stats(country_2, D2)
@@ -204,9 +204,9 @@ def sectorwise_stats(country_code, investments):
     sectorwise_investment_statistics = investments_by_main_sector.agg({Columns.RAISED_AMOUNT_USD: ["sum", "count"]})
     sectorwise_investment_statistics.columns = sectorwise_investment_statistics.columns.droplevel(0)
     sectorwise_investment_statistics = sectorwise_investment_statistics.sort_values(by="count", ascending=False)
-    print(f"SECTORWISE_INVESTMENT_STATISTICS for {country_code}")
-    print("---------------------------------------------")
-    print(sectorwise_investment_statistics)
+    logging.info(f"SECTORWISE_INVESTMENT_STATISTICS for {country_code}")
+    logging.info("---------------------------------------------")
+    logging.info(sectorwise_investment_statistics)
     return sectorwise_investment_statistics.reset_index()
 
 
@@ -232,10 +232,10 @@ def analyse():
     unique_companies_in_companies, unique_companies_in_rounds2 = unique_companies(companies, rounds)
 
     # How many unique companies are present in rounds?
-    print(f"Unique companies in rounds2 (Before Cleanup): {len(unique_companies_in_rounds2)}")
+    logging.info(f"Unique companies in rounds2 (Before Cleanup): {len(unique_companies_in_rounds2)}")
 
     # How many unique companies are present in companies?
-    print(f"Unique companies in companies (Before Cleanup): {len(unique_companies_in_companies)}")
+    logging.info(f"Unique companies in companies (Before Cleanup): {len(unique_companies_in_companies)}")
 
     # In the companies data frame, which column can be used as the unique key for each company? Write the name of the column.
     # permalink
@@ -251,19 +251,19 @@ def analyse():
     unique_companies_in_companies_after_cleanup, unique_companies_in_rounds2_after_cleanup = clean_permalinks(companies,
                                                                                                               rounds)
     # How many unique companies are present in rounds?
-    print(f"Unique companies in rounds2 (After Cleanup): {len(unique_companies_in_rounds2_after_cleanup)}")
+    logging.info(f"Unique companies in rounds2 (After Cleanup): {len(unique_companies_in_rounds2_after_cleanup)}")
 
     # How many unique companies are present in companies?
-    print(f"Unique companies in companies (After Cleanup): {len(unique_companies_in_companies_after_cleanup)}")
+    logging.info(f"Unique companies in companies (After Cleanup): {len(unique_companies_in_companies_after_cleanup)}")
 
     master_frame = merge_companies_rounds(companies, rounds)
     setup_sectors(master_frame, sector_map)
-    print(f"MASTER FUNDING FRAME: {len(master_frame)}")
+    logging.info(f"MASTER FUNDING FRAME: {len(master_frame)}")
     logging.info(master_frame.columns)
     logging.debug(master_frame.head(10))
-    print("-----------------------------------------")
+    logging.info("-----------------------------------------")
     english_master_funding = english_speaking_countries(master_frame)
-    print(f"Only English Investments: {len(english_master_funding)}")
+    logging.info(f"Only English Investments: {len(english_master_funding)}")
     investments_english_4_types = analyse_investment_types(english_master_funding)
 
     # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
@@ -271,26 +271,26 @@ def analyse():
     # Venture Investments
     english_venture_investments_with_outliers = investments_english_4_types[
         investments_english_4_types[Columns.FUNDING_ROUND_TYPE] == InvestmentTypes.VENTURE]
-    print(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
+    logging.info(f"English-only Venture Investments Selected: {len(english_venture_investments_with_outliers)}")
     top9 = top_9_countries(english_venture_investments_with_outliers)
-    print("Top 9 Countrywise Investments:")
-    print(top9)
-    print("---------------------------------------------")
+    logging.info("Top 9 Countrywise Investments:")
+    logging.info(top9)
+    logging.info("---------------------------------------------")
     # Fill Top 3 Countries from the Above List
 
-    print(english_venture_investments_with_outliers[Columns.MAIN_SECTOR].head(10))
+    logging.info(english_venture_investments_with_outliers[Columns.MAIN_SECTOR].head(10))
     aggregate_investment_stats_by_country, d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats, D1, D2, D3 = heavily_invested_sectors(
         english_venture_investments_with_outliers, top9)
 
     most_invested_company_in_ranked_sector(0, D1, d1_sectorwise_stats)
     most_invested_company_in_ranked_sector(1, D1, d1_sectorwise_stats)
-    print("-------------------------------------------------------------------")
+    logging.info("-------------------------------------------------------------------")
     most_invested_company_in_ranked_sector(0, D2, d2_sectorwise_stats)
     most_invested_company_in_ranked_sector(1, D2, d2_sectorwise_stats)
-    print("-------------------------------------------------------------------")
+    logging.info("-------------------------------------------------------------------")
     most_invested_company_in_ranked_sector(0, D3, d3_sectorwise_stats)
     most_invested_company_in_ranked_sector(1, D3, d3_sectorwise_stats)
-    print("-------------------------------------------------------------------")
+    logging.info("-------------------------------------------------------------------")
 
     plot_top_9_countries_by_investment_amount(top9)
     plot_top_3_sectors_by_count_by_country(d1_sectorwise_stats, d2_sectorwise_stats, d3_sectorwise_stats, D1, D2, D3)
@@ -329,7 +329,7 @@ def most_invested_company_in_ranked_sector(sector_rank, investments_for_country,
     most_invested_company = sorted_investments_in_top_sector_for_country[Columns.COMPANIES_NAME].iloc[0]
     investment_in_most_invested_company = sorted_investments_in_top_sector_for_country[Columns.RAISED_AMOUNT_USD].iloc[
         0]
-    print(
+    logging.info(
         f"MOST INVESTED COMPANY IN {country_code} for sector {ranked_sector_in_country}, ranked #{sector_rank + 1}: {most_invested_company}")
     return [country_code, ranked_sector_in_country, sector_rank, most_invested_company,
             investment_in_most_invested_company]
