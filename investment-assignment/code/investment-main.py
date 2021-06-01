@@ -1,6 +1,29 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+logging.basicConfig(level=logging.INFO)
+
+# ## Investment Assignment
+
+# ## Introduction
+# This is the Assignment for the Investment case study for Spark Funds. **Spark Funds**, an asset management company. Spark Funds wants to make investments in a few companies. The CEO of Spark Funds wants to understand the **global trends in investments** so that she can take the investment decisions effectively.
+#
+# ## Business Understanding and Domain (CRISP-DM Step #1)
+# - Spark Funds wants to invest **between 5 to 15 million USD** per round of investment
+# - Spark Funds wants to invest **only in English-speaking countries** because of the ease of communication with the companies it would invest in
+# - Spark Funds wants to invest where most other investors are investing. This pattern is often observed among early stage startup investors.
+
+# ## Objective
+# The objective is to identify the **best sectors, countries, and a suitable investment type** for making investments. The overall strategy is to invest where others are investing, implying that the 'best' sectors and countries are the ones 'where most investors are investing'.
+
+# ## Data Sources
+# - Company Profiles (Crunchbase)
+# - Investment Rounds Data (Crunchbase)
+# - Category Mapping
+
 
 ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BWA', 'BDI', 'CMR', 'CAN', 'DMA', 'SWZ',
                      'FJI', 'GMB', 'GHA', 'GRD', 'GUY', 'IND', 'IRL', 'JAM', 'KEN', 'KIR', 'LSO', 'LBR', 'MWI', 'MLT',
@@ -8,12 +31,16 @@ ENGLISH_COUNTRIES = ['AUS', 'NZL', 'GBR', 'USA', 'ATG', 'BHS', 'BRB', 'BLZ', 'BW
                      'SYC', 'SLE', 'SGP', 'SLB', 'ZAF', 'SSD', 'SDN', 'TZA', 'TON', 'TTO', 'TUV', 'VUT', 'ZMB', 'ZWE',
                      'BHR', 'BGD', 'BRN', 'KHM', 'CYP', 'ERI', 'ETH', 'ISR', 'JOR', 'KWT', 'MYS', 'MDV', 'MMR', 'OMN',
                      'QAT', 'RWA', 'LKA', 'UGA', 'ARE']
+
+# The above English-speaking countries have been taken from Wikipedia using a script which uses BeautifulSoup to scrape the HTML tables, and output the result as a list.
+
 ORGANIZATION = "/organization/"
 EMPTY_STRING = ""
 FIVE_MILLION = 5000000
 FIFTEEN_MILLION = 15000000
 
 
+# A bunch of constants are set up so that strings don't clutter the source everywhere.
 class MainSectors:
     OTHERS = "Others"
     HEALTH = "Health"
@@ -50,6 +77,7 @@ class InvestmentTypes:
     PRIVATE_EQUITY = "private_equity"
 
 
+# This is used to generate permalinks from company names
 def sanitized(s):
     return s.replace(" ", "-").replace(".", "-")
 
@@ -58,6 +86,7 @@ def with_organization_prefix(s):
     return f"{ORGANIZATION}{s}"
 
 
+# This is used to generate a pattern which is used to locate a permalink within the rounds frame
 def pattern_for_rounds_matching(company_name):
     return f'{ORGANIZATION}{sanitized(company_name.lower())}'
 
@@ -188,13 +217,14 @@ def fix_case(companies, rounds):
     rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = rounds[Columns.ROUNDS2_COMPANY_PERMALINK].str.lower()
 
 
+# This is the main function which is invoked to run all the analyses and generate all the plots.
 def analyse():
     companies = pd.read_csv("../data/companies.csv")
     rounds = pd.read_csv("../data/rounds2.csv")
     mapping = pd.read_csv("../data/mapping.csv")
-    print(companies.columns)
-    print(mapping.columns)
-    print(rounds.columns)
+    logging.debug(companies.columns)
+    logging.debug(mapping.columns)
+    logging.debug(rounds.columns)
 
     sector_map = mapping_dict(mapping)
 
@@ -214,9 +244,9 @@ def analyse():
     # Are there any companies in the rounds file which are not present in companies? Answer yes or no: Y/N
     companies_not_in_companies = set(unique_companies_in_rounds2).difference(set(unique_companies_in_companies))
     companies_not_in_rounds2 = set(unique_companies_in_companies).difference(set(unique_companies_in_rounds2))
-    print(len(companies_not_in_companies))
-    print(companies_not_in_companies)
-    # print(len(companies_not_in_rounds2))
+    logging.info(f"Companies in rounds2 but not in companies: {len(companies_not_in_companies)}")
+    logging.debug(companies_not_in_companies)
+    logging.info(f"Companies in companies but not in rounds2: {len(companies_not_in_rounds2)}")
     # YES
 
     unique_companies_in_companies_after_cleanup, unique_companies_in_rounds2_after_cleanup = clean_permalinks(companies,
@@ -237,7 +267,6 @@ def analyse():
     investments_english_4_types = analyse_investment_types(english_master_funding)
 
     # Calculate the most representative value of the investment amount for each of the four funding types (venture, angel, seed, and private equity) and report the answers in Table 2.1
-    # Fill in Table
     # Based on the most representative investment amount calculated above, which investment type do you think is the most suitable for Spark Funds?
     # Venture Investments
     english_venture_investments_with_outliers = investments_english_4_types[
@@ -313,6 +342,8 @@ def setup_sectors(master_funding, sector_map):
         lambda primary_sector: sector_map[primary_sector])
 
 
+# This is part of the data cleaning exercise for mappings. Primary sectors are usually connected to a main sector, but there are several primary sectors do not have this mapping.
+# This function adds those missing mappings.
 def mapping_dict(mapping):
     mapping = mapping.melt([Columns.CATEGORY_LIST])
 
@@ -374,13 +405,19 @@ def mapping_dict(mapping):
     mapping_as_dict["Experience Design"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
     mapping_as_dict["Mobile Emergency&Health"] = MainSectors.HEALTH
     mapping_as_dict["Sponsorship"] = MainSectors.SOCIAL_FINANCE_ANALYTICS_ADVERTISING
-    print("Mapping is:")
-    print(mapping_as_dict)
+    logging.debug("Mapping is:")
+    logging.debug(mapping_as_dict)
     return mapping_as_dict
 
 
+# This is part of the data cleaning exercise for companies and rounds.
+# Permalinks are sometimes corrupted because of mistranslation of special characters
+# This function fixes those permalinks.
+
 def clean_permalinks(companies, rounds):
-    # Fix inconsistent Data
+
+# ### Pattern 1
+# This is the most common type of malformed data. In this the permalink in the *companies* dataset is malformed, mostly because it uses Mandarin characters. The corresponding company name is well-formed. The corresponding permalink in the *rounds2* data set is also well-formed.
     fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds)
     fix_permalink_from_rounds("Boréal Bikes Incorporated")
     fix_permalink_from_rounds("Tío Conejo")
@@ -403,6 +440,9 @@ def clean_permalinks(companies, rounds):
                               locator=constant(with_organization_prefix("médica-santa-carmen-2")))
     fix_permalink_from_rounds("E CÚBICA", locator=constant(with_organization_prefix("e-cêbica")))
     fix_permalink_from_rounds("Vá de Táxi")
+
+# ### Pattern 3
+# The third common pattern of malformed data is where the *companies* dataset has the correctly generated permalink, but the corresponding permalink in the *rounds2* dataset is malformed.
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds)
     fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds)
     fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds)
@@ -412,6 +452,8 @@ def clean_permalinks(companies, rounds):
     # This needs some extra fixing
     fix_permalink_from_companies("Crème & Ciseaux", "e-ciseaux", companies, rounds)
 
+# ### Pattern 2
+# This is the second most common type of malformed data. In this case, the permalinks for a company are malformed in different ways in both the *companies* and *rounds2* dataset, and thus do not match. This occurs because of Mandarin characters in the company name not translating correcting to the permalinks. The solution is to regenerate the permalink from the (well-formed) company name and use that in both the *companies* and *rounds2* dataset.
     regenerate_permalink("ZenGame", "ZenGame 禅游科技", companies, rounds)
     regenerate_permalink("EnergyStone Games", "EnergyStone Games 灵石游戏", companies, rounds)
     regenerate_permalink("Magnet Tech ", "Magnet Tech 磁石科技", companies, rounds)
@@ -427,30 +469,35 @@ def clean_permalinks(companies, rounds):
                          rounds)  # This permalink is mangled in both data sets, generated new permalink
     regenerate_permalink("k��k", "KÖÖK", companies, rounds)
     unique_companies_in_companies, unique_companies_in_rounds = unique_companies(companies, rounds)
-    print(set(unique_companies_in_rounds).difference(set(unique_companies_in_companies)))
-    print(set(unique_companies_in_companies).difference(set(unique_companies_in_rounds)))
+    logging.debug(set(unique_companies_in_rounds).difference(set(unique_companies_in_companies)))
+    logging.debug(set(unique_companies_in_companies).difference(set(unique_companies_in_rounds)))
     return unique_companies_in_companies, unique_companies_in_rounds
 
+
+# This regenerates permalinks from a company name
+# For **Pattern 2**, the permalinks were regenerated by sanitising the (well-formed) company name and copied over to the *companies* and *rounds2* dataset.
 
 def regenerate_permalink(company_name_prefix, full_company_name, companies, rounds2,
                          optional_organization_prefix=ORGANIZATION):
     dashed_company_name_prefix = sanitized(company_name_prefix)
     dashed_lowercase_full_company_name = sanitized(full_company_name).lower()
     corrected_permalink_lowercase = (f'/organization/{dashed_lowercase_full_company_name}').lower()
-    print(corrected_permalink_lowercase)
+    logging.debug(corrected_permalink_lowercase)
     companies.loc[companies[Columns.COMPANIES_NAME].str.contains(full_company_name,
                                                                  na=False), Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
     rounds2.loc[rounds2[Columns.ROUNDS2_COMPANY_PERMALINK].str.contains(
         f'{optional_organization_prefix}{dashed_company_name_prefix}',
         na=False, case=False, regex=False), Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = corrected_permalink_lowercase
-    print(companies[companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase,
+    logging.debug(companies[companies[Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase,
                                                                                           na=False, case=False)])
-    print(rounds2[
+    logging.debug(rounds2[
               rounds2[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(corrected_permalink_lowercase, na=False,
                                                                                 case=False)])
 
 
 def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, companies, rounds):
+
+# For **Pattern 1**, the permalinks in the *rounds2* dataset were copied over to the *companies* dataset, after using suitable search patterns.
     def fix_permalink_from_rounds_inner(company_name, locator=company_permalink_locator_in_round):
         company_permalink_from_rounds = locator(company_name)
         correct_value_rows = rounds[
@@ -458,12 +505,13 @@ def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, compan
         corrected_value = correct_value_rows.iloc[0][Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE]
         companies.loc[companies[
                           Columns.COMPANIES_NAME] == company_name, Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE] = corrected_value
-        print(companies[companies[Columns.COMPANIES_NAME] == company_name].to_string())
-        print(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
+        logging.debug(companies[companies[Columns.COMPANIES_NAME] == company_name].to_string())
+        logging.debug(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == corrected_value].to_string())
 
     return fix_permalink_from_rounds_inner
 
 
+# For **Pattern 3**, the permalinks in the *companies* dataset were copied over to the *rounds2* dataset, after using suitable search patterns.
 def fix_permalink_from_companies(company_name, rounds_permalink_fragment, companies, rounds,
                                  truth_column=Columns.COMPANIES_COMPANY_PERMALINK_LOWERCASE):
     correct_value_rows = companies[companies[Columns.COMPANIES_NAME] == company_name]
@@ -471,8 +519,8 @@ def fix_permalink_from_companies(company_name, rounds_permalink_fragment, compan
     rounds.loc[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE].str.contains(rounds_permalink_fragment, na=False,
                                                                                 case=False,
                                                                                 regex=False), Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] = lowercase_corrected_value
-    print(companies[companies[truth_column] == lowercase_corrected_value].to_string())
-    print(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
+    logging.debug(companies[companies[truth_column] == lowercase_corrected_value].to_string())
+    logging.debug(rounds[rounds[Columns.ROUNDS2_COMPANY_PERMALINK_LOWERCASE] == lowercase_corrected_value].to_string())
 
 
 def unique_companies(companies, rounds2):
