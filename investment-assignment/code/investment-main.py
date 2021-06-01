@@ -1,5 +1,4 @@
 import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -260,7 +259,8 @@ def analyse():
     master_frame = merge_companies_rounds(companies, rounds)
     setup_sectors(master_frame, sector_map)
     print(f"MASTER FUNDING FRAME: {len(master_frame)}")
-    print(master_frame.head(10))
+    logging.info(master_frame.columns)
+    logging.debug(master_frame.head(10))
     print("-----------------------------------------")
     english_master_funding = english_speaking_countries(master_frame)
     print(f"Only English Investments: {len(english_master_funding)}")
