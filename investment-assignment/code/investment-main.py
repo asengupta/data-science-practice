@@ -415,9 +415,8 @@ def mapping_dict(mapping):
 # This function fixes those permalinks.
 
 def clean_permalinks(companies, rounds):
-
-# ### Pattern 1
-# This is the most common type of malformed data. In this the permalink in the *companies* dataset is malformed, mostly because it uses Mandarin characters. The corresponding company name is well-formed. The corresponding permalink in the *rounds2* data set is also well-formed.
+    # ### Pattern 1
+    # This is the most common type of malformed data. In this the permalink in the *companies* dataset is malformed, mostly because it uses Mandarin characters. The corresponding company name is well-formed. The corresponding permalink in the *rounds2* data set is also well-formed.
     fix_permalink_from_rounds = fix_permalink_from_rounds_builder(pattern_for_rounds_matching, companies, rounds)
     fix_permalink_from_rounds("Boréal Bikes Incorporated")
     fix_permalink_from_rounds("Tío Conejo")
@@ -441,8 +440,8 @@ def clean_permalinks(companies, rounds):
     fix_permalink_from_rounds("E CÚBICA", locator=constant(with_organization_prefix("e-cêbica")))
     fix_permalink_from_rounds("Vá de Táxi")
 
-# ### Pattern 3
-# The third common pattern of malformed data is where the *companies* dataset has the correctly generated permalink, but the corresponding permalink in the *rounds2* dataset is malformed.
+    # ### Pattern 3
+    # The third common pattern of malformed data is where the *companies* dataset has the correctly generated permalink, but the corresponding permalink in the *rounds2* dataset is malformed.
     fix_permalink_from_companies("It’s All About Me", "S-ALL-ABOUT-ME", companies, rounds)
     fix_permalink_from_companies("Whodat’s Spaces", "WHODAT", companies, rounds)
     fix_permalink_from_companies("know’N’act", "KNOW", companies, rounds)
@@ -452,8 +451,8 @@ def clean_permalinks(companies, rounds):
     # This needs some extra fixing
     fix_permalink_from_companies("Crème & Ciseaux", "e-ciseaux", companies, rounds)
 
-# ### Pattern 2
-# This is the second most common type of malformed data. In this case, the permalinks for a company are malformed in different ways in both the *companies* and *rounds2* dataset, and thus do not match. This occurs because of Mandarin characters in the company name not translating correcting to the permalinks. The solution is to regenerate the permalink from the (well-formed) company name and use that in both the *companies* and *rounds2* dataset.
+    # ### Pattern 2
+    # This is the second most common type of malformed data. In this case, the permalinks for a company are malformed in different ways in both the *companies* and *rounds2* dataset, and thus do not match. This occurs because of Mandarin characters in the company name not translating correcting to the permalinks. The solution is to regenerate the permalink from the (well-formed) company name and use that in both the *companies* and *rounds2* dataset.
     regenerate_permalink("ZenGame", "ZenGame 禅游科技", companies, rounds)
     regenerate_permalink("EnergyStone Games", "EnergyStone Games 灵石游戏", companies, rounds)
     regenerate_permalink("Magnet Tech ", "Magnet Tech 磁石科技", companies, rounds)
@@ -495,9 +494,8 @@ def regenerate_permalink(company_name_prefix, full_company_name, companies, roun
                                                                                 case=False)])
 
 
-def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, companies, rounds):
-
 # For **Pattern 1**, the permalinks in the *rounds2* dataset were copied over to the *companies* dataset, after using suitable search patterns.
+def fix_permalink_from_rounds_builder(company_permalink_locator_in_round, companies, rounds):
     def fix_permalink_from_rounds_inner(company_name, locator=company_permalink_locator_in_round):
         company_permalink_from_rounds = locator(company_name)
         correct_value_rows = rounds[
