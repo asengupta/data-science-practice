@@ -24,12 +24,11 @@
 import getopt
 import logging
 import sys
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-logging.basicConfig(level=logging.INFO)
+# logging.basicConfig(level=logging.INFO, format='%(message)s')
 
 # ## Investment Assignment
 
@@ -602,7 +601,20 @@ def read_csv(companies_csv, rounds_csv, mapping_csv):
     return companies, rounds, mapping
 
 
+def setup_logging():
+    for handler in logging.root.handlers[:]:
+        logging.root.removeHandler(handler)
+    logger = logging.getLogger()
+    formatter = logging.Formatter('%(message)s')
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(formatter)
+    logger.setLevel(logging.INFO)
+    logger.addHandler(ch)
+
+
 def main():
+    setup_logging()
     analyse(*read_csv(*parse_commandline_options(sys.argv[1:])))
 
 
