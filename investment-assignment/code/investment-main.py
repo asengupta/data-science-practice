@@ -561,12 +561,13 @@ def unique_companies(companies, rounds2):
 
 # This function reads file names for companies, rounds, and mapping if they need to be specified from the command line
 def parse_commandline_options(args):
+    print(f"args are: {args}")
     companies_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_COMPANIES_CSV_LOCATION}"
     rounds_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_ROUNDS2_CSV_LOCATION}"
     mappings_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_MAPPING_CSV_LOCATION}"
 
     try:
-        options, arguments = getopt.getopt(args, "c:r:v:h", ["companies=", "rounds=", "mappings=", "help"])
+        options, arguments = getopt.getopt(args, "c:r:v:hf:", ["companies=", "rounds=", "mappings=", "help"])
         for option, argument in options:
             if option in ("-h", "--help"):
                 print_help_text()
@@ -579,7 +580,8 @@ def parse_commandline_options(args):
             else:
                 print(f"{option} was not recognised as a valid option")
                 print_help_text()
-                exit(1)
+                print("Allowing to continue since Jupyter notebook passes in other command-line options")
+                # exit(1)
                 # raise Exception(f"{option} was not recognised as a valid option")
         return companies_csv, rounds_csv, mappings_csv
     except getopt.GetoptError as e:
