@@ -7,10 +7,12 @@ If you wish to use your own copy of the data, use the following command:
 
 Here are some examples:
 
-``python lending-club-main.py --input=loan.csv``
-``python lending-club-main.py -i loan.csv``
-``python lending-club-main.py``
-``python lending-club-main.py --help``
+```
+python lending-club-main.py --input=loan.csv
+python lending-club-main.py -i loan.csv
+python lending-club-main.py
+python lending-club-main.py --help
+```
 
 All of these arguments are optional. Providing no arguments makes the code read from the default location, i.e. ```./data```.
 
