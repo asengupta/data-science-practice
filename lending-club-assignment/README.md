@@ -2,9 +2,11 @@
 
 ## Running the file
 If you wish to use your own copy of the data, use the following command:
+
 ``python lending-club-main.py [{-i |--input=}<loan-csv>] [-h | --help]``
 
 Here are some examples:
+
 ``python lending-club-main.py --input=loan.csv``
 ``python lending-club-main.py -i loan.csv``
 ``python lending-club-main.py``
