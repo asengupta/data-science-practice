@@ -1,13 +1,13 @@
 # ## Running the file
 # If you wish to use your own copy of the data, use the following command:
 #
-# ``python investment-main.py [{-c |--companies=}<companies-csv>] [{-r |--rounds=}<rounds-csv>] [{-m |--mappings=}<mappings-csv>]``
+# ``python investment-main.py [{-c |--companies=}<companies-csv>] [{-r |--rounds=}rounds-csv>] [{-m |--mappings=}<mappings-csv>]``
 #
 # Here are some examples:
 #
-# ``python investment-main.py --companies=<companies.csv --rounds=rounds2.csv -mappings=mappings.csv``
-# ``python investment-main.py --companies=<companies.csv --rounds=rounds2.csv``
-# ``python investment-main.py --companies=<companies.csv -mappings=mappings.csv``
+# ``python investment-main.py --companies=companies.csv --rounds=rounds2.csv -mappings=mappings.csv``
+# ``python investment-main.py --companies=companies.csv --rounds=rounds2.csv``
+# ``python investment-main.py --companies=companies.csv -mappings=mappings.csv``
 # ``python investment-main.py``
 #
 # All of these arguments are optional. Providing no arguments makes the code read from the default location, i.e. ```./data```.
