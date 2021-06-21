@@ -32,6 +32,9 @@ import pandas as pd
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_LOAN_CSV_FILENAME = "loan.csv"
 
+class Columns:
+    ID = "id"
+    MEMBER_ID = "member_id"
 
 # This function reads the loan data set
 def parse_commandline_options(args):
@@ -88,21 +91,27 @@ def clean_loans(raw_loans):
     loans_wo_desc=raw_loans.drop('desc',axis=1)
     ## Checking which column can be used as an identifier
     heading("Check which column can be used as an identifier")
-    print(loans_wo_desc['id'].nunique())
-    print(loans_wo_desc['member_id'].nunique())
+    logging.info(f"Unique entries in id column : {loans_wo_desc[Columns.ID].nunique()}")
+    logging.info(f"Unique entries in member_id column : {loans_wo_desc[Columns.MEMBER_ID].nunique()}")
+    ids_not_in_member_ids = set(loans_wo_desc[Columns.ID]).difference(set(loans_wo_desc[Columns.MEMBER_ID]))
+    member_ids_not_in_ids = set(loans_wo_desc[Columns.MEMBER_ID]).difference(set(loans_wo_desc[Columns.ID]))
+    logging.info(f"id's not in member_id's = {len(ids_not_in_member_ids)}")
+    logging.info(f"member_id's not in id's = {len(member_ids_not_in_ids)}")
+    loans_wo_desc_member_id = loans_wo_desc.drop(columns=[Columns.MEMBER_ID],axis=1)
     ### Both this column can be used as an identifier, anyone of these can be dropped. Also none of this is helpful for our analysis. They are just identifier
 
     heading("Column Data Types")
-    print(loans_wo_desc.dtypes)
+    logging.info(loans_wo_desc_member_id.dtypes)
     heading("Null Entries Statistics")
-    null_entry_statistics = loans_wo_desc.isnull().sum() / len(loans_wo_desc.index)
+    null_entry_statistics = loans_wo_desc_member_id.isnull().sum() / len(loans_wo_desc_member_id.index)
 
     null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
     heading("Completely Null Columns")
-    print(null_columns)
-    loans_wo_nulls = loans_wo_desc.drop(null_columns, axis = 1)
+    logging.info(null_columns)
+    loans_wo_nulls = loans_wo_desc_member_id.drop(null_columns, axis = 1)
     heading("Loan Info after scrubbing completely empty columns")
-    print(loans_wo_nulls.info())
+    logging.debug(loans_wo_nulls.info())
+
 
 def analyse(raw_loans):
     # raw_loans=pd.read_csv("/content/drive/MyDrive/Upgrad Data Set/Lending Club Case Study/loan.csv",low_memory=False)
