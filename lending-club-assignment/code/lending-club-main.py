@@ -62,6 +62,17 @@ EMPLOYMENT_TITLE = 'emp_title'
 FUNDED_AMOUNT = 'funded_amnt'
 FUNDED_AMOUNT_INVESTED = 'funded_amnt_inv'
 INSTALLMENT = "installment"
+LOAN_STATUS = 'loan_status'
+INTEREST_RATE = 'int_rate'
+EMPLOYMENT_LENGTH = 'emp_length'
+ISSUE_DATE = 'issue_d'
+ISSUE_MONTH = 'issue_month'
+ISSUE_YEAR = 'issue_year'
+MONTHS_SINCE_LAST_DELINQUENCY = "mths_since_last_delinq"
+MONTHS_SINCE_LAST_RECORD = "mths_since_last_record"
+NEXT_PAYMENT_DATE = "next_pymnt_d"
+
+CURRENT = 'Current'
 
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
 
@@ -72,7 +83,8 @@ CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUI
                               TOTAL_RECOVERED_PRINCIPAL,
                               INTEREST_RECEIVED_TILL_DATE, TOTAL_RECOVERED_LATE_FEE, RECOVERIES,
                               COLLECTION_RECOVERY_FEE, LAST_PAYMENT_DATE,
-                              LAST_PAYMENT_AMOUNT, LAST_CREDIT_PULL_DATE, APPLICATION_TYPE]
+                              LAST_PAYMENT_AMOUNT, LAST_CREDIT_PULL_DATE, APPLICATION_TYPE,
+                              MONTHS_SINCE_LAST_DELINQUENCY, MONTHS_SINCE_LAST_RECORD, NEXT_PAYMENT_DATE]
 
 
 # Cleaning Completely Null Columns
@@ -155,14 +167,46 @@ def multicollinear_free_loads(loans):
     return loans.drop(columns=[FUNDED_AMOUNT, FUNDED_AMOUNT_INVESTED, INSTALLMENT], axis=1)
 
 
+# # Remove loans which are of status CURRENT
+def loans_without_current_loans(loans):
+    heading("Loan Statuses: There should only be 3 categories")
+    logging.info(loans[LOAN_STATUS].value_counts())
+    print("Shape of the data before dropping rows", loans.shape)
+    loans_wo_current = loans[loans[LOAN_STATUS] != CURRENT]
+    print("Shape of the data after dropping rows", loans_wo_current.shape)
+    return loans_wo_current
+
+
+# # Correct data types for interest rate, employment length and issue date
+def corrected_data_types(loans):
+    loans = loans.copy()
+    loans[INTEREST_RATE] = loans[INTEREST_RATE].apply(lambda x: float(str(x).replace('%', '')))
+    loans[EMPLOYMENT_LENGTH] = loans[EMPLOYMENT_LENGTH].apply(
+        lambda x: float(str(x).replace('years', '').replace('year', '').replace('+', '').replace('< 1', '0.5')))
+    loans[ISSUE_DATE] = pd.to_datetime(loans[ISSUE_DATE], format='%b-%y')
+    loans[ISSUE_MONTH] = pd.DatetimeIndex(loans[ISSUE_DATE]).month
+    loans[ISSUE_YEAR] = pd.DatetimeIndex(loans[ISSUE_DATE]).year
+    return loans
+
+
 def analyse(raw_loans):
-    logging.debug("HELLO")
-    logging.debug(raw_loans.head())
+    logging.debug(raw_loans.head().to_string())
     # Number of Rows and Columns in the data set
     logging.debug(raw_loans.shape)
     logging.debug(raw_loans.columns)
     loans_wo_unneeded_columns = cleaned_loans(raw_loans)
-    multicollinear_free_loads(loans_wo_unneeded_columns)
+    loans_wo_correlated_factors = multicollinear_free_loads(loans_wo_unneeded_columns)
+    loans_wo_current = loans_without_current_loans(loans_wo_correlated_factors)
+    loans_with_corrected_data_types = corrected_data_types(loans_wo_current)
+    recheck_null_values(loans_with_corrected_data_types)
+    loans_with_corrected_data_types.set_index(keys=ID, inplace=True)
+
+
+# # Recheck Null Values after Cleanup
+# We still have null values in the data. We can fill those values. But EDA doesn't require to fill. Handling missing value is part of modelling.
+def recheck_null_values(loans_with_corrected_data_types):
+    heading("Null value checks after Cleanup")
+    logging.info(loans_with_corrected_data_types.isnull().sum())
 
 
 # This function reads the loan data set
@@ -203,6 +247,7 @@ def setup_logging():
     ch.setFormatter(formatter)
     logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
+
 
 def read_csv(loan_csv):
     return pd.read_csv(loan_csv, low_memory=False)
