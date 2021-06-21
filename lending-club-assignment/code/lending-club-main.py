@@ -202,6 +202,13 @@ def loans_without_current_loans(loans):
     return loans_wo_current
 
 
+# # Recheck Null Values after Cleanup
+# We still have null values in the data. We can fill those values. But EDA doesn't require to fill. Handling missing value is part of modelling.
+def recheck_null_values(loans_with_corrected_data_types):
+    heading("Null value checks after Cleanup")
+    logging.info(loans_with_corrected_data_types.isnull().sum())
+
+
 # # Correction of Data Types
 # Some columns needed for numerical EDA do not show up as numbers, or properly-formatted dates.
 # Examples are: for `interest rate`, `employment length` and `issue date`. We fix these factors here.
@@ -216,6 +223,7 @@ def corrected_data_types(loans):
     return loans
 
 
+# This function plots various factors against each other for the purposes of EDA
 def analyse(loans):
     plot_overall_charged_off_vs_paid(loans)
     plot_loan_amount_across_time_by_loan_status(loans)
@@ -246,6 +254,7 @@ def analyse(loans):
     plot_verification_status_by_loan_status(loans)
 
 
+# # EDA Plot Functions
 def plot_sub_grade_by_loan_status(loans):
     plt.figure(figsize=(10, 6))
     loans.groupby(by=[SUB_GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(
@@ -321,6 +330,8 @@ def plot_overall_charged_off_vs_paid(loans):
     plt.show()
 
 
+# # Entry Point
+#  This function is the entry point for the entire CRISPR process. This is called by `main()`
 def study(raw_loans):
     logging.debug(raw_loans.head().to_string())
     # Number of Rows and Columns in the data set
@@ -336,14 +347,7 @@ def study(raw_loans):
     analyse(loans_with_corrected_data_types)
 
 
-# # Recheck Null Values after Cleanup
-# We still have null values in the data. We can fill those values. But EDA doesn't require to fill. Handling missing value is part of modelling.
-def recheck_null_values(loans_with_corrected_data_types):
-    heading("Null value checks after Cleanup")
-    logging.info(loans_with_corrected_data_types.isnull().sum())
-
-
-# This function reads the loan data set
+# This function reads command line arguments, one of which can be the input loan data set
 def parse_commandline_options(args):
     print(f"args are: {args}")
     loan_csv = f"{DEFAULT_DATASET_LOCATION}/{DEFAULT_LOAN_CSV_FILENAME}"
@@ -366,6 +370,7 @@ def parse_commandline_options(args):
         exit(2)
 
 
+# This function prints out the help text if either explicitly requested or in case of wrong input
 def print_help_text():
     print("USAGE: python lending-club-main.py [{-i |--input=}<loan-csv>]")
 
@@ -383,16 +388,19 @@ def setup_logging():
     logger.addHandler(ch)
 
 
+# This function reads the loan data set
 def read_csv(loan_csv):
     return pd.read_csv(loan_csv, low_memory=False)
 
 
+# This utility function pretty prints a heading for output
 def heading(heading_text):
     logging.info("-" * 100)
     logging.info(heading_text)
     logging.info("-" * 100)
 
 
+# This function is the entry point of the script
 def main():
     setup_logging()
     study(read_csv(parse_commandline_options(sys.argv[1:])))
