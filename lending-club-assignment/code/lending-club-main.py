@@ -131,7 +131,7 @@ def clean_null_columns(loans):
     return loans.drop(null_columns, axis=1)
 
 
-def clean_loans(raw_loans):
+def cleaned_loans(raw_loans):
     ##### Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
     loans_wo_desc = raw_loans.drop('desc', axis=1)
     ## Checking which column can be used as an identifier
@@ -152,7 +152,7 @@ def clean_loans(raw_loans):
     logging.debug(loans_wo_nulls.info())
     loans_wo_nulls = clean_customer_behaviour_columns(loans_wo_nulls)
     loans_wo_nulls = clean_constant_valued_columns(loans_wo_nulls)
-
+    return loans_wo_nulls
 
 def clean_customer_behaviour_columns(loans_wo_nulls):
     ## Removing columns  which are customer behaviour variable. This values will not be available to us while customer is filling the loan form.
@@ -169,14 +169,31 @@ def clean_constant_valued_columns(loans_wo_nulls):
     return loans_wo_nulls.drop(columns=CONSTANT_VALUED_COLUMNS, axis=1)
 
 
+### Checking Correlation between columns
+def multicollinear_free_loads(loans):
+    heading("Check for Highly Correlated variables")
+    correlations = loans.corr()
+    indexes = correlations.index.to_numpy()
+    heading("Correlation Coefficients")
+    logging.info(correlations.to_string())
+
+    heading("Highly Correlated Columns")
+    for row in indexes:
+        for col in indexes:
+            if (row == col):
+                continue
+            if (correlations[row][col] >= 0.85):
+                logging.info(f"[{row},{col}] = {correlations[row][col]}")
+
+
 def analyse(raw_loans):
     # raw_loans=pd.read_csv("/content/drive/MyDrive/Upgrad Data Set/Lending Club Case Study/loan.csv",low_memory=False)
     print(raw_loans.head())
     ## Number of Rows and Columns in the data set
     print(raw_loans.shape)
     print(raw_loans.columns)
-    clean_loans(raw_loans)
-
+    loans_wo_unneeded_columns = cleaned_loans(raw_loans)
+    multicollinear_free_loads(loans_wo_unneeded_columns)
 
 def main():
     setup_logging()
