@@ -58,6 +58,9 @@ INITIAL_LIST_STATUS = 'initial_list_status'
 POLICY_CODE = 'policy_code'
 URL = 'url'
 EMPLOYMENT_TITLE = 'emp_title'
+FUNDED_AMOUNT = 'funded_amnt'
+FUNDED_AMOUNT_INVESTED = 'funded_amnt_inv'
+INSTALLMENT = "installment"
 
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
 
@@ -154,6 +157,7 @@ def cleaned_loans(raw_loans):
     loans_wo_nulls = clean_constant_valued_columns(loans_wo_nulls)
     return loans_wo_nulls
 
+
 def clean_customer_behaviour_columns(loans_wo_nulls):
     ## Removing columns  which are customer behaviour variable. This values will not be available to us while customer is filling the loan form.
     ## Hence this will be not helpful for deciding whether customer will charged off or full pay
@@ -185,6 +189,11 @@ def multicollinear_free_loads(loans):
             if (correlations[row][col] >= 0.85):
                 logging.info(f"[{row},{col}] = {correlations[row][col]}")
 
+    # loan_amnt, funded_amnt and funded_amnt_inv have high correlation. High correlation means they all contains the same information. We can drop 2 out of 3.
+    # we will keep loan_amnt and rest 2 can be dropped.
+    # installment is also highly correlated
+    return loans.drop(columns=[FUNDED_AMOUNT, FUNDED_AMOUNT_INVESTED, INSTALLMENT], axis=1)
+
 
 def analyse(raw_loans):
     # raw_loans=pd.read_csv("/content/drive/MyDrive/Upgrad Data Set/Lending Club Case Study/loan.csv",low_memory=False)
@@ -194,6 +203,7 @@ def analyse(raw_loans):
     print(raw_loans.columns)
     loans_wo_unneeded_columns = cleaned_loans(raw_loans)
     multicollinear_free_loads(loans_wo_unneeded_columns)
+
 
 def main():
     setup_logging()
