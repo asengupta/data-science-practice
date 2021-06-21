@@ -86,6 +86,7 @@ def clean_null_columns(loans):
     return loans.drop(null_columns, axis=1)
 
 
+# # Cleaning Loan Data
 def cleaned_loans(raw_loans):
     ## Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
     loans_wo_desc = raw_loans.drop('desc', axis=1)
@@ -96,7 +97,7 @@ def cleaned_loans(raw_loans):
     # Both this column can be used as an identifier, anyone of these can be dropped. Also none of this is helpful for our analysis. They are just identifier
 
     heading("Column Data Types")
-    logging.info(loans_wo_desc_member_id.dtypes)
+    logging.debug(loans_wo_desc_member_id.dtypes)
     loans_wo_nulls = clean_null_columns(loans_wo_desc_member_id)
     heading("Loan Info after scrubbing completely empty columns")
     logging.debug(loans_wo_nulls.info())
@@ -155,11 +156,11 @@ def multicollinear_free_loads(loans):
 
 
 def analyse(raw_loans):
-    # raw_loans=pd.read_csv("/content/drive/MyDrive/Upgrad Data Set/Lending Club Case Study/loan.csv",low_memory=False)
-    print(raw_loans.head())
+    logging.debug("HELLO")
+    logging.debug(raw_loans.head())
     # Number of Rows and Columns in the data set
-    print(raw_loans.shape)
-    print(raw_loans.columns)
+    logging.debug(raw_loans.shape)
+    logging.debug(raw_loans.columns)
     loans_wo_unneeded_columns = cleaned_loans(raw_loans)
     multicollinear_free_loads(loans_wo_unneeded_columns)
 
@@ -198,20 +199,19 @@ def setup_logging():
     logger = logging.getLogger()
     formatter = logging.Formatter('%(message)s')
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
     ch.setFormatter(formatter)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(ch)
 
-
 def read_csv(loan_csv):
-    return pd.read_csv(loan_csv)
+    return pd.read_csv(loan_csv, low_memory=False)
 
 
 def heading(heading_text):
-    print("-" * 100)
-    print(heading_text)
-    print("-" * 100)
+    logging.info("-" * 100)
+    logging.info(heading_text)
+    logging.info("-" * 100)
 
 
 def main():
