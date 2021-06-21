@@ -25,16 +25,51 @@ import getopt
 import logging
 import sys
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_LOAN_CSV_FILENAME = "loan.csv"
 
-class Columns:
-    ID = "id"
-    MEMBER_ID = "member_id"
+ID = "id"
+MEMBER_ID = "member_id"
+DELINQUENT_2_YEARS = 'delinq_2yrs'
+EARLIER_CREDIT_LINE = 'earliest_cr_line'
+LAST_PAYMENT_AMOUNT = 'last_pymnt_amnt'
+LAST_CREDIT_PULL_DATE = 'last_credit_pull_d'
+APPLICATION_TYPE = 'application_type'
+LAST_PAYMENT_DATE = 'last_pymnt_d'
+COLLECTION_RECOVERY_FEE = 'collection_recovery_fee'
+RECOVERIES = 'recoveries'
+TOTAL_RECOVERED_LATE_FEE = 'total_rec_late_fee'
+TOTAL_PAYMENT = 'total_pymnt'
+TOTAL_PAYMENT_INVESTED = 'total_pymnt_inv'
+TOTAL_RECOVERED_PRINCIPAL = 'total_rec_prncp'
+OUT_PRINCIPAL_INVESTED = 'out_prncp_inv'
+OUT_PRINCIPAL = 'out_prncp'
+NUM_INQUIRIES_6_MONTHS = 'inq_last_6mths'
+NUM_OPRN_CREDIT_LINES = 'open_acc'
+NUM_DEROGATORY_PUBLIC_RECORDS = 'pub_rec'
+TOTAL_CREDOT_REVOLVING_BALANCE = 'revol_bal'
+REVOLVING_LINE_UTILISATION_RATE = 'revol_util'
+CURRENT_NUM_CREDIT_LINES = 'total_acc'
+INTEREST_RECEIVED_TILL_DATE = 'total_rec_int'
+PAYMENT_PLAN = 'pymnt_plan'
+INITIAL_LIST_STATUS = 'initial_list_status'
+POLICY_CODE = 'policy_code'
+URL = 'url'
+EMPLOYMENT_TITLE = 'emp_title'
+
+CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
+
+CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUIRIES_6_MONTHS, NUM_OPRN_CREDIT_LINES,
+                              NUM_DEROGATORY_PUBLIC_RECORDS,
+                              TOTAL_CREDOT_REVOLVING_BALANCE, REVOLVING_LINE_UTILISATION_RATE, CURRENT_NUM_CREDIT_LINES,
+                              OUT_PRINCIPAL, OUT_PRINCIPAL_INVESTED, TOTAL_PAYMENT, TOTAL_PAYMENT_INVESTED,
+                              TOTAL_RECOVERED_PRINCIPAL,
+                              INTEREST_RECEIVED_TILL_DATE, TOTAL_RECOVERED_LATE_FEE, RECOVERIES,
+                              COLLECTION_RECOVERY_FEE, LAST_PAYMENT_DATE,
+                              LAST_PAYMENT_AMOUNT, LAST_CREDIT_PULL_DATE, APPLICATION_TYPE]
+
 
 # This function reads the loan data set
 def parse_commandline_options(args):
@@ -81,36 +116,57 @@ def read_csv(loan_csv):
 
 
 def heading(heading_text):
-    print("-"*100)
+    print("-" * 100)
     print(heading_text)
-    print("-"*100)
+    print("-" * 100)
 
 
-def clean_loans(raw_loans):
-    ##### Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
-    loans_wo_desc=raw_loans.drop('desc',axis=1)
-    ## Checking which column can be used as an identifier
-    heading("Check which column can be used as an identifier")
-    logging.info(f"Unique entries in id column : {loans_wo_desc[Columns.ID].nunique()}")
-    logging.info(f"Unique entries in member_id column : {loans_wo_desc[Columns.MEMBER_ID].nunique()}")
-    ids_not_in_member_ids = set(loans_wo_desc[Columns.ID]).difference(set(loans_wo_desc[Columns.MEMBER_ID]))
-    member_ids_not_in_ids = set(loans_wo_desc[Columns.MEMBER_ID]).difference(set(loans_wo_desc[Columns.ID]))
-    logging.info(f"id's not in member_id's = {len(ids_not_in_member_ids)}")
-    logging.info(f"member_id's not in id's = {len(member_ids_not_in_ids)}")
-    loans_wo_desc_member_id = loans_wo_desc.drop(columns=[Columns.MEMBER_ID],axis=1)
-    ### Both this column can be used as an identifier, anyone of these can be dropped. Also none of this is helpful for our analysis. They are just identifier
-
-    heading("Column Data Types")
-    logging.info(loans_wo_desc_member_id.dtypes)
+def clean_null_columns(loans):
     heading("Null Entries Statistics")
-    null_entry_statistics = loans_wo_desc_member_id.isnull().sum() / len(loans_wo_desc_member_id.index)
+    null_entry_statistics = loans.isnull().sum() / len(loans.index)
 
     null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
     heading("Completely Null Columns")
     logging.info(null_columns)
-    loans_wo_nulls = loans_wo_desc_member_id.drop(null_columns, axis = 1)
+    return loans.drop(null_columns, axis=1)
+
+
+def clean_loans(raw_loans):
+    ##### Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
+    loans_wo_desc = raw_loans.drop('desc', axis=1)
+    ## Checking which column can be used as an identifier
+    heading("Check which column can be used as an identifier")
+    logging.info(f"Unique entries in id column : {loans_wo_desc[ID].nunique()}")
+    logging.info(f"Unique entries in member_id column : {loans_wo_desc[MEMBER_ID].nunique()}")
+    ids_not_in_member_ids = set(loans_wo_desc[ID]).difference(set(loans_wo_desc[MEMBER_ID]))
+    member_ids_not_in_ids = set(loans_wo_desc[MEMBER_ID]).difference(set(loans_wo_desc[ID]))
+    logging.info(f"id's not in member_id's = {len(ids_not_in_member_ids)}")
+    logging.info(f"member_id's not in id's = {len(member_ids_not_in_ids)}")
+    loans_wo_desc_member_id = loans_wo_desc.drop(columns=[MEMBER_ID], axis=1)
+    ### Both this column can be used as an identifier, anyone of these can be dropped. Also none of this is helpful for our analysis. They are just identifier
+
+    heading("Column Data Types")
+    logging.info(loans_wo_desc_member_id.dtypes)
+    loans_wo_nulls = clean_null_columns(loans_wo_desc_member_id)
     heading("Loan Info after scrubbing completely empty columns")
     logging.debug(loans_wo_nulls.info())
+    loans_wo_nulls = clean_customer_behaviour_columns(loans_wo_nulls)
+    loans_wo_nulls = clean_constant_valued_columns(loans_wo_nulls)
+
+
+def clean_customer_behaviour_columns(loans_wo_nulls):
+    ## Removing columns  which are customer behaviour variable. This values will not be available to us while customer is filling the loan form.
+    ## Hence this will be not helpful for deciding whether customer will charged off or full pay
+    return loans_wo_nulls.drop(columns=CUSTOMER_BEHAVIOUR_COLUMNS, axis=1)
+
+
+def clean_constant_valued_columns(loans_wo_nulls):
+    ### There are a few columns which have constant values. Such as pymnt_plan,initial_list_status,policy_code. We can drop these. Along with this, we can also drop
+    ### emp_title and URL column because they too don't contain values which can help do decide loan_status
+    logging.info(f"Unique Values in column pymnt_plan: {loans_wo_nulls[PAYMENT_PLAN].nunique()}")
+    logging.info(f"Unique Values in column initial_list_status: {loans_wo_nulls[INITIAL_LIST_STATUS].nunique()}")
+    logging.info(f"Unique Values in column policy_code: {loans_wo_nulls[POLICY_CODE].nunique()}")
+    return loans_wo_nulls.drop(columns=CONSTANT_VALUED_COLUMNS, axis=1)
 
 
 def analyse(raw_loans):
@@ -120,6 +176,7 @@ def analyse(raw_loans):
     print(raw_loans.shape)
     print(raw_loans.columns)
     clean_loans(raw_loans)
+
 
 def main():
     setup_logging()
