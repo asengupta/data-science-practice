@@ -21,6 +21,7 @@
 #
 # ``p2j -o code/lending-club-main.py -t notebook/lending-club-main.ipynb``
 
+# # Library Imports
 import getopt
 import logging
 import sys
@@ -29,6 +30,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+# # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_LOAN_CSV_FILENAME = "loan.csv"
@@ -82,10 +84,9 @@ HOME_OWNERSHIP = 'home_ownership'
 ANNUAL_INCOME = 'annual_inc'
 VERIFICATION_STATUS = 'verification_status'
 
+FULLY_PAID = 'Fully Paid'
 CURRENT = 'Current'
-
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
-
 CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUIRIES_6_MONTHS, NUM_OPRN_CREDIT_LINES,
                               NUM_DEROGATORY_PUBLIC_RECORDS,
                               TOTAL_CREDOT_REVOLVING_BALANCE, REVOLVING_LINE_UTILISATION_RATE, CURRENT_NUM_CREDIT_LINES,
@@ -97,18 +98,13 @@ CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUI
                               MONTHS_SINCE_LAST_DELINQUENCY, MONTHS_SINCE_LAST_RECORD, NEXT_PAYMENT_DATE]
 
 
-# Cleaning Completely Null Columns
-def clean_null_columns(loans):
-    heading("Null Entries Statistics")
-    null_entry_statistics = loans.isnull().sum() / len(loans.index)
-
-    null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
-    heading("Completely Null Columns")
-    logging.info(null_columns)
-    return loans.drop(null_columns, axis=1)
-
-
 # # Cleaning Loan Data
+# The cleanup consists of the following steps:
+# - Removing `desc` column
+# - Removing `member_id` column
+# - Removing completely null columns
+# - Removing customer behaviour columns which are not available for analysis for aspiring loan applicants
+# - Removing columns which have constant values and do not contribute to analysis
 def non_null_loans(raw_loans):
     ## Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
     loans_wo_desc = raw_loans.drop('desc', axis=1)
@@ -128,6 +124,19 @@ def non_null_loans(raw_loans):
     return loans_wo_nulls
 
 
+# ## Null Column Cleanup
+# The loan dataset has several columns which are completely empty. These are useless for analysis.
+# This function drops completely null columns.
+def clean_null_columns(loans):
+    heading("Null Entries Statistics")
+    null_entry_statistics = loans.isnull().sum() / len(loans.index)
+
+    null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
+    heading("Completely Null Columns")
+    logging.info(null_columns)
+    return loans.drop(null_columns, axis=1)
+
+
 # Verifying that member_id's and id's are completely unique from each other
 def verify_id_member_id_columns_are_not_correlated(loans):
     ids_as_number = pd.to_numeric(loans[ID])
@@ -140,12 +149,14 @@ def verify_id_member_id_columns_are_not_correlated(loans):
     logging.info(f"member_id's not in id's = {len(member_ids_not_in_ids)}")
 
 
+# ## Dropping Customer Behaviour Columns
 # Removing columns  which are customer behaviour variable. This values will not be available to us while customer is filling the loan form.
 # Hence this will be not helpful for deciding whether customer will charged off or full pay
 def clean_customer_behaviour_columns(loans_wo_nulls):
     return loans_wo_nulls.drop(columns=CUSTOMER_BEHAVIOUR_COLUMNS, axis=1)
 
 
+# ## Constant-Valued Columns
 # There are a few columns which have constant values. Such as pymnt_plan,initial_list_status,policy_code. We can drop these. Along with this, we can also drop
 # emp_title and URL column because they too don't contain values which can help do decide loan_status
 def clean_constant_valued_columns(loans_wo_nulls):
@@ -155,7 +166,9 @@ def clean_constant_valued_columns(loans_wo_nulls):
     return loans_wo_nulls.drop(columns=CONSTANT_VALUED_COLUMNS, axis=1)
 
 
-# ## Checking Correlation between columns
+# # Checking Correlation between columns
+# We check the correlation between pairs of columns, this gives us a statistic (the default being the Pearson correlation coefficient).
+# The correlation coefficient gives a measure of how one factor varies with the other.
 def multicollinear_free_loads(loans):
     heading("Check for Highly Correlated variables")
     correlations = loans.corr()
@@ -178,6 +191,8 @@ def multicollinear_free_loads(loans):
 
 
 # # Remove loans which are of status CURRENT
+# Loans with `CURRENT` status are current customers involved in paying off their loans.
+# These loans do not provide us with any training information from which we can infer any conclusions.
 def loans_without_current_loans(loans):
     heading("Loan Statuses: There should only be 3 categories")
     logging.info(loans[LOAN_STATUS].value_counts())
@@ -187,7 +202,9 @@ def loans_without_current_loans(loans):
     return loans_wo_current
 
 
-# # Correct data types for interest rate, employment length and issue date
+# # Correction of Data Types
+# Some columns needed for numerical EDA do not show up as numbers, or properly-formatted dates.
+# Examples are: for `interest rate`, `employment length` and `issue date`. We fix these factors here.
 def corrected_data_types(loans):
     loans = loans.copy()
     loans[INTEREST_RATE] = loans[INTEREST_RATE].apply(lambda x: float(str(x).replace('%', '')))
@@ -200,68 +217,107 @@ def corrected_data_types(loans):
 
 
 def analyse(loans):
-    loans[LOAN_STATUS].value_counts(1).plot(kind='bar')
-    plt.show()
-
-    plt.figure(figsize=(20, 10))
-    sns.lineplot(data=loans, x=ISSUE_DATE, y=LOAN_AMOUNT, hue=LOAN_STATUS)
-    plt.title("Loan Given across the date")
-    plt.xticks(rotation=90)
-    plt.show()
+    plot_overall_charged_off_vs_paid(loans)
+    plot_loan_amount_across_time_by_loan_status(loans)
 
     for i in loans.select_dtypes(include=['int', 'float']).columns:
         sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
         plt.title("Loan Status vs " + i)
         plt.show()
 
+    plot_requested_loan_amount_by_loan_status(loans)
+    plot_users_term_by_loan_status(loans)
+
+    loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
+    logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
+
+    plot_users_loan_category_by_loan_status(loans)
+    plot_installment_by_loan_status(loans)
+    loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
+                                                                                                             stacked=True)
+    plot_sub_grade_by_loan_status(loans)
+    plot_employment_length_by_loan_status(loans)
+    plot_home_ownership_by_loan_status(loans)
+    plot_annual_income_by_loan_status(loans)
+
+    logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
+
+    plot_restricted_annual_income_by_loan_status(loans)
+    plot_verification_status_by_loan_status(loans)
+
+
+def plot_sub_grade_by_loan_status(loans):
+    plt.figure(figsize=(10, 6))
+    loans.groupby(by=[SUB_GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(
+        kind='bar', stacked=True);
+
+
+def plot_verification_status_by_loan_status(loans):
+    loans.groupby(by=[VERIFICATION_STATUS, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
+    plt.show()
+
+
+def plot_restricted_annual_income_by_loan_status(loans):
+    sns.boxplot(data=loans[(loans[ANNUAL_INCOME] > 10000) & (loans[ANNUAL_INCOME] < 100000)], y=ANNUAL_INCOME,
+                x=LOAN_STATUS)
+
+
+def plot_annual_income_by_loan_status(loans):
+    sns.boxplot(data=loans, y=ANNUAL_INCOME, x=LOAN_STATUS)
+
+
+def plot_home_ownership_by_loan_status(loans):
+    loans.groupby(by=[HOME_OWNERSHIP, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
+    plt.title("Home Ownership")
+    plt.show()
+
+
+def plot_employment_length_by_loan_status(loans):
+    sns.histplot(data=loans, x=EMPLOYMENT_LENGTH, hue=LOAN_STATUS, multiple='stack');
+
+
+def plot_installment_by_loan_status(loans):
     plt.figure(figsize=(10, 5))
-    sns.histplot(data=loans, x='loan_amnt', hue='loan_status', binwidth=1000, multiple="stack")
+    plt.subplot(1, 2, 1)
+    sns.histplot(data=loans[loans[LOAN_STATUS] == FULLY_PAID], x=INSTALLMENT)
+    plt.subplot(1, 2, 2)
+    sns.histplot(data=loans[loans[LOAN_STATUS] != FULLY_PAID], x=INSTALLMENT, color='r')
+    plt.show()
+
+
+def plot_users_loan_category_by_loan_status(loans):
+    loans.groupby(by=[INTEREST_RATE_CATEGORY, LOAN_STATUS])[LOAN_STATUS].count().unstack().apply(
+        lambda x: x / sum(x),
+        axis=1).plot(
+        kind='bar', stacked=True)
+    plt.show()
+
+
+def plot_requested_loan_amount_by_loan_status(loans):
+    plt.figure(figsize=(10, 5))
+    sns.histplot(data=loans, x=LOAN_AMOUNT, hue=LOAN_STATUS, binwidth=1000, multiple="stack")
     plt.title("Loan Amount Requested Distribution")
     plt.xlabel("Loan Amount Requested")
     plt.show()
 
+
+def plot_users_term_by_loan_status(loans):
     plt.figure(figsize=(10, 8))
     loans.groupby(by=[TERM, LOAN_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x), axis=1).plot(
         kind='bar', stacked=True)
     plt.title("Distribution of users for loan term")
 
-    loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
-    logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
 
-    loans.groupby(by=[INTEREST_RATE_CATEGORY, LOAN_STATUS])[LOAN_STATUS].count().unstack().apply(
-        lambda x: x / sum(x),
-        axis=1).plot(
-        kind='bar', stacked=True)
-
+def plot_loan_amount_across_time_by_loan_status(loans):
+    plt.figure(figsize=(20, 10))
+    sns.lineplot(data=loans, x=ISSUE_DATE, y=LOAN_AMOUNT, hue=LOAN_STATUS)
+    plt.title("Loan Given across the date")
+    plt.xticks(rotation=90)
     plt.show()
 
-    plt.figure(figsize=(10, 5))
-    plt.subplot(1, 2, 1)
-    sns.histplot(data=loans[loans[LOAN_STATUS] == 'Fully Paid'], x=INSTALLMENT)
-    plt.subplot(1, 2, 2)
-    sns.histplot(data=loans[loans[LOAN_STATUS] != 'Fully Paid'], x=INSTALLMENT, color='r')
-    plt.show()
 
-    loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
-                                                                                                             stacked=True)
-    plt.figure(figsize=(10, 6))
-    loans.groupby(by=[SUB_GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(
-        kind='bar', stacked=True);
-
-    sns.histplot(data=loans, x=EMPLOYMENT_LENGTH, hue=LOAN_STATUS, multiple='stack');
-
-    loans.groupby(by=[HOME_OWNERSHIP, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
-    plt.title("Home Ownership")
-    plt.show()
-
-    sns.boxplot(data=loans, y=ANNUAL_INCOME, x=LOAN_STATUS)
-
-    logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
-
-    sns.boxplot(data=loans[(loans[ANNUAL_INCOME] > 10000) & (loans[ANNUAL_INCOME] < 100000)], y=ANNUAL_INCOME,
-                x=LOAN_STATUS)
-
-    loans.groupby(by=[VERIFICATION_STATUS, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
+def plot_overall_charged_off_vs_paid(loans):
+    loans[LOAN_STATUS].value_counts(1).plot(kind='bar')
     plt.show()
 
 
