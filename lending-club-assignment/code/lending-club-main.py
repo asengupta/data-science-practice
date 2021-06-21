@@ -77,9 +77,40 @@ def read_csv(loan_csv):
     return pd.read_csv(loan_csv)
 
 
-def analyse(loans):
-    pass
+def heading(heading_text):
+    print("-"*100)
+    print(heading_text)
+    print("-"*100)
 
+
+def clean_loans(raw_loans):
+    ##### Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
+    loans_wo_desc=raw_loans.drop('desc',axis=1)
+    ## Checking which column can be used as an identifier
+    heading("Check which column can be used as an identifier")
+    print(loans_wo_desc['id'].nunique())
+    print(loans_wo_desc['member_id'].nunique())
+    ### Both this column can be used as an identifier, anyone of these can be dropped. Also none of this is helpful for our analysis. They are just identifier
+
+    heading("Column Data Types")
+    print(loans_wo_desc.dtypes)
+    heading("Null Entries Statistics")
+    null_entry_statistics = loans_wo_desc.isnull().sum() / len(loans_wo_desc.index)
+
+    null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
+    heading("Completely Null Columns")
+    print(null_columns)
+    loans_wo_nulls = loans_wo_desc.drop(null_columns, axis = 1)
+    heading("Loan Info after scrubbing completely empty columns")
+    print(loans_wo_nulls.info())
+
+def analyse(raw_loans):
+    # raw_loans=pd.read_csv("/content/drive/MyDrive/Upgrad Data Set/Lending Club Case Study/loan.csv",low_memory=False)
+    print(raw_loans.head())
+    ## Number of Rows and Columns in the data set
+    print(raw_loans.shape)
+    print(raw_loans.columns)
+    clean_loans(raw_loans)
 
 def main():
     setup_logging()
