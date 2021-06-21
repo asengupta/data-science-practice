@@ -25,7 +25,9 @@ import getopt
 import logging
 import sys
 
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
 DEFAULT_DATASET_LOCATION = "../data"
@@ -71,6 +73,14 @@ ISSUE_YEAR = 'issue_year'
 MONTHS_SINCE_LAST_DELINQUENCY = "mths_since_last_delinq"
 MONTHS_SINCE_LAST_RECORD = "mths_since_last_record"
 NEXT_PAYMENT_DATE = "next_pymnt_d"
+LOAN_AMOUNT = 'loan_amnt'
+TERM = 'term'
+INTEREST_RATE_CATEGORY = 'int_rate_cat'
+GRADE = 'grade'
+SUB_GRADE = 'sub_grade'
+HOME_OWNERSHIP = 'home_ownership'
+ANNUAL_INCOME = 'annual_inc'
+VERIFICATION_STATUS = 'verification_status'
 
 CURRENT = 'Current'
 
@@ -99,7 +109,7 @@ def clean_null_columns(loans):
 
 
 # # Cleaning Loan Data
-def cleaned_loans(raw_loans):
+def non_null_loans(raw_loans):
     ## Removing Desc column from dataset as it will be not helpful for us in this case study, whereas it can be helpful if we were solving NLP problem
     loans_wo_desc = raw_loans.drop('desc', axis=1)
     # Checking which column can be used as an identifier
@@ -164,7 +174,7 @@ def multicollinear_free_loads(loans):
     # loan_amnt, funded_amnt and funded_amnt_inv have high correlation. High correlation means they all contains the same information. We can drop 2 out of 3.
     # we will keep loan_amnt and rest 2 can be dropped.
     # installment is also highly correlated
-    return loans.drop(columns=[FUNDED_AMOUNT, FUNDED_AMOUNT_INVESTED, INSTALLMENT], axis=1)
+    return loans.drop(columns=[FUNDED_AMOUNT, FUNDED_AMOUNT_INVESTED], axis=1)
 
 
 # # Remove loans which are of status CURRENT
@@ -189,17 +199,85 @@ def corrected_data_types(loans):
     return loans
 
 
-def analyse(raw_loans):
+def analyse(loans):
+    loans[LOAN_STATUS].value_counts(1).plot(kind='bar')
+    plt.show()
+
+    plt.figure(figsize=(20, 10))
+    sns.lineplot(data=loans, x=ISSUE_DATE, y=LOAN_AMOUNT, hue=LOAN_STATUS)
+    plt.title("Loan Given across the date")
+    plt.xticks(rotation=90)
+    plt.show()
+
+    for i in loans.select_dtypes(include=['int', 'float']).columns:
+        sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
+        plt.title("Loan Status vs " + i)
+        plt.show()
+
+    plt.figure(figsize=(10, 5))
+    sns.histplot(data=loans, x='loan_amnt', hue='loan_status', binwidth=1000, multiple="stack")
+    plt.title("Loan Amount Requested Distribution")
+    plt.xlabel("Loan Amount Requested")
+    plt.show()
+
+    plt.figure(figsize=(10, 8))
+    loans.groupby(by=[TERM, LOAN_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x), axis=1).plot(
+        kind='bar', stacked=True)
+    plt.title("Distribution of users for loan term")
+
+    loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
+    logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
+
+    loans.groupby(by=[INTEREST_RATE_CATEGORY, LOAN_STATUS])[LOAN_STATUS].count().unstack().apply(
+        lambda x: x / sum(x),
+        axis=1).plot(
+        kind='bar', stacked=True)
+
+    plt.show()
+
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    sns.histplot(data=loans[loans[LOAN_STATUS] == 'Fully Paid'], x=INSTALLMENT)
+    plt.subplot(1, 2, 2)
+    sns.histplot(data=loans[loans[LOAN_STATUS] != 'Fully Paid'], x=INSTALLMENT, color='r')
+    plt.show()
+
+    loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
+                                                                                                             stacked=True)
+    plt.figure(figsize=(10, 6))
+    loans.groupby(by=[SUB_GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(
+        kind='bar', stacked=True);
+
+    sns.histplot(data=loans, x=EMPLOYMENT_LENGTH, hue=LOAN_STATUS, multiple='stack');
+
+    loans.groupby(by=[HOME_OWNERSHIP, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
+    plt.title("Home Ownership")
+    plt.show()
+
+    sns.boxplot(data=loans, y=ANNUAL_INCOME, x=LOAN_STATUS)
+
+    logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
+
+    sns.boxplot(data=loans[(loans[ANNUAL_INCOME] > 10000) & (loans[ANNUAL_INCOME] < 100000)], y=ANNUAL_INCOME,
+                x=LOAN_STATUS)
+
+    loans.groupby(by=[VERIFICATION_STATUS, LOAN_STATUS])[LOAN_STATUS].count().unstack().fillna(0).plot.bar()
+    plt.show()
+
+
+def study(raw_loans):
     logging.debug(raw_loans.head().to_string())
     # Number of Rows and Columns in the data set
     logging.debug(raw_loans.shape)
     logging.debug(raw_loans.columns)
-    loans_wo_unneeded_columns = cleaned_loans(raw_loans)
+    loans_wo_unneeded_columns = non_null_loans(raw_loans)
     loans_wo_correlated_factors = multicollinear_free_loads(loans_wo_unneeded_columns)
     loans_wo_current = loans_without_current_loans(loans_wo_correlated_factors)
     loans_with_corrected_data_types = corrected_data_types(loans_wo_current)
     recheck_null_values(loans_with_corrected_data_types)
     loans_with_corrected_data_types.set_index(keys=ID, inplace=True)
+
+    analyse(loans_with_corrected_data_types)
 
 
 # # Recheck Null Values after Cleanup
@@ -261,7 +339,7 @@ def heading(heading_text):
 
 def main():
     setup_logging()
-    analyse(read_csv(parse_commandline_options(sys.argv[1:])))
+    study(read_csv(parse_commandline_options(sys.argv[1:])))
 
 
 main()
