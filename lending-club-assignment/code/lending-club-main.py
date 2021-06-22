@@ -29,6 +29,7 @@ import sys
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import numpy as np
 
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
@@ -86,6 +87,8 @@ VERIFICATION_STATUS = 'verification_status'
 
 FULLY_PAID = 'Fully Paid'
 CURRENT = 'Current'
+CHARGED_OFF = 'Charged Off'
+
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
 CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUIRIES_6_MONTHS, NUM_OPRN_CREDIT_LINES,
                               NUM_DEROGATORY_PUBLIC_RECORDS,
@@ -224,21 +227,54 @@ def corrected_data_types(loans):
 
 
 # This function plots various factors against each other for the purposes of EDA
+def analyse_bivariate(loans):
+    logging.info(loans.groupby(by=LOAN_STATUS)[LOAN_AMOUNT].describe())
+    #### Mean is higher in both the cases of loan_status with respect to median, this show right skew data
+    #### The user who is defaulter ask for higher loan amount compared to Non-Defaulter
+
+    pair_plot_across_all_attributes(loans)
+    loan_status_by_verification_status = round(
+        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
+                                                                                                  axis=1) * 100, 2)
+    heading("Loan Status vs. Verification Status Statistics")
+    logging.info(loan_status_by_verification_status)
+
+    round(
+        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
+                                                                                                  axis=1) * 100,
+        2).plot.barh(figsize=(10, 10))
+    ##### Verified user are getting more default
+    plt.show()
+
+    loans[LOAN_STATUS] = np.where(loans[LOAN_STATUS] == CHARGED_OFF, 1, 0)
+
+    plt.figure(figsize=(10,8))
+    sns.heatmap(data=loans.groupby(by=[GRADE,SUB_GRADE])[LOAN_STATUS].mean().unstack().fillna(-1),cmap='Reds')
+    plt.show()
+    #### Users who get F5 subgrade defaults more followed by G3
+
+
+def pair_plot_across_all_attributes(loans):
+    sns.pairplot(data=loans)
+    plt.show()
+
+
 def analyse(loans):
+    analyse_univariate(loans)
+    analyse_bivariate(loans)
+
+
+def analyse_univariate(loans):
     plot_overall_charged_off_vs_paid(loans)
     plot_loan_amount_across_time_by_loan_status(loans)
-
     for i in loans.select_dtypes(include=['int', 'float']).columns:
         sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
         plt.title("Loan Status vs " + i)
         plt.show()
-
     plot_requested_loan_amount_by_loan_status(loans)
     plot_users_term_by_loan_status(loans)
-
     loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
     logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
-
     plot_users_loan_category_by_loan_status(loans)
     plot_installment_by_loan_status(loans)
     loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
@@ -247,9 +283,7 @@ def analyse(loans):
     plot_employment_length_by_loan_status(loans)
     plot_home_ownership_by_loan_status(loans)
     plot_annual_income_by_loan_status(loans)
-
     logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
-
     plot_restricted_annual_income_by_loan_status(loans)
     plot_verification_status_by_loan_status(loans)
 
