@@ -27,9 +27,9 @@ import logging
 import sys
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-import numpy as np
 
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
@@ -84,11 +84,20 @@ SUB_GRADE = 'sub_grade'
 HOME_OWNERSHIP = 'home_ownership'
 ANNUAL_INCOME = 'annual_inc'
 VERIFICATION_STATUS = 'verification_status'
+PURPOSE = 'purpose'
+ADDRESS_STATE = 'addr_state'
+DEBT_TO_INCOME_RATIO = 'dti'
+TAX_LIENS = 'tax_liens'
+DELINQ_AMNT = 'delinq_amnt'
+CHARGEOFF_WITHIN_12_MTHS = 'chargeoff_within_12_mths'
+ACC_NOW_DELINQ = 'acc_now_delinq'
+COLLECTIONS_12_MTHS_EX_MED = 'collections_12_mths_ex_med'
 
 FULLY_PAID = 'Fully Paid'
 CURRENT = 'Current'
 CHARGED_OFF = 'Charged Off'
 
+USELESS_COLUMNS = [TAX_LIENS, DELINQ_AMNT, CHARGEOFF_WITHIN_12_MTHS, ACC_NOW_DELINQ, COLLECTIONS_12_MTHS_EX_MED]
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
 CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUIRIES_6_MONTHS, NUM_OPRN_CREDIT_LINES,
                               NUM_DEROGATORY_PUBLIC_RECORDS,
@@ -124,7 +133,19 @@ def non_null_loans(raw_loans):
     logging.debug(loans_wo_nulls.info())
     loans_wo_nulls = clean_customer_behaviour_columns(loans_wo_nulls)
     loans_wo_nulls = clean_constant_valued_columns(loans_wo_nulls)
+    loans_wo_nulls = clean_useless_columns(loans_wo_nulls)
     return loans_wo_nulls
+
+
+# ## Null Column Cleanup
+# These columns are not useful because they have values either 0 or Nan value
+def clean_useless_columns(loans):
+    logging.debug(loans[COLLECTIONS_12_MTHS_EX_MED].value_counts())
+    logging.debug(loans[ACC_NOW_DELINQ].value_counts())
+    logging.debug(loans[CHARGEOFF_WITHIN_12_MTHS].value_counts())
+    logging.debug(loans[DELINQ_AMNT].value_counts())
+    logging.debug(loans[TAX_LIENS].value_counts())
+    return loans.drop(columns=USELESS_COLUMNS, axis=1)
 
 
 # ## Null Column Cleanup
@@ -233,12 +254,17 @@ def analyse_bivariate(loans):
     #### The user who is defaulter ask for higher loan amount compared to Non-Defaulter
 
     pair_plot_across_all_attributes(loans)
+    plot_verification_status_for_independent_loan_statuses(loans)
+    plot_grade_subgrade_heatmap_by_loan_status(loans)
+    plot_yearly_monthly_by_loan_status(loans)
+
+
+def plot_verification_status_for_independent_loan_statuses(loans):
     loan_status_by_verification_status = round(
         loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
                                                                                                   axis=1) * 100, 2)
     heading("Loan Status vs. Verification Status Statistics")
     logging.info(loan_status_by_verification_status)
-
     round(
         loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
                                                                                                   axis=1) * 100,
@@ -246,12 +272,22 @@ def analyse_bivariate(loans):
     ##### Verified user are getting more default
     plt.show()
 
-    loans[LOAN_STATUS] = np.where(loans[LOAN_STATUS] == CHARGED_OFF, 1, 0)
 
-    plt.figure(figsize=(10,8))
-    sns.heatmap(data=loans.groupby(by=[GRADE,SUB_GRADE])[LOAN_STATUS].mean().unstack().fillna(-1),cmap='Reds')
+def plot_grade_subgrade_heatmap_by_loan_status(loans):
+    loans[LOAN_STATUS] = np.where(loans[LOAN_STATUS] == CHARGED_OFF, 1, 0)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(data=loans.groupby(by=[GRADE, SUB_GRADE])[LOAN_STATUS].mean().unstack().fillna(-1), cmap='Reds')
     plt.show()
     #### Users who get F5 subgrade defaults more followed by G3
+
+
+def plot_yearly_monthly_by_loan_status(loans):
+    loans.groupby(by=[ISSUE_YEAR, ISSUE_MONTH])[LOAN_STATUS].sum().plot.bar(figsize=(20, 5),
+                                                                            title="Number of Defaulters YoY")
+    plt.xlabel("Issue Year & Month")
+    plt.ylabel("Defaulter Count")
+    plt.show()
+    ### Defaulters are increasing every year, though we have seen financial crisis in 2008, but they didn't defaulted much
 
 
 def pair_plot_across_all_attributes(loans):
@@ -260,13 +296,16 @@ def pair_plot_across_all_attributes(loans):
 
 
 def analyse(loans):
-    analyse_univariate(loans)
+    analyse_univariate_unsegmented(loans)
+    analyse_univariate_segmented(loans)
     analyse_bivariate(loans)
 
 
-def analyse_univariate(loans):
-    plot_overall_charged_off_vs_paid(loans)
+# Segmented Univariate Analysis
+def analyse_univariate_segmented(loans):
+    plot_pi_overall_charged_off_vs_paid(loans)
     plot_loan_amount_across_time_by_loan_status(loans)
+
     for i in loans.select_dtypes(include=['int', 'float']).columns:
         sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
         plt.title("Loan Status vs " + i)
@@ -286,6 +325,151 @@ def analyse_univariate(loans):
     logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
     plot_restricted_annual_income_by_loan_status(loans)
     plot_verification_status_by_loan_status(loans)
+
+
+def analyse_univariate_unsegmented(loans):
+    plot_loan_amount_distribution_univariate(loans)
+    plot_loan_requests_by_month_univariate(loans)
+    plot_loan_requests_by_year_univariate(loans)
+    plot_term_counts_univariate(loans)
+    plot_interest_rate_distribution_univariate(loans)
+    plot_loan_grade_distribution_univariate(loans)
+    plot_loan_sub_grade_distribution_univariate(loans)
+    plot_employment_length_distribution_univariate(loans)
+    plot_home_ownership_distributions_univariate(loans)
+    plot_annual_income_distribution_univariate(loans)
+    plot_verification_status_distribution_univariate(loans)
+    plot_loan_purpose_distribution_univariate(loans)
+    plot_address_state_distribution_univariate(loans)
+    plot_dti_distribution_univariate(loans)
+    loans[DEBT_TO_INCOME_RATIO].describe()
+    ### Higher the DTI, higher % of monthly income is paid towards EMI
+
+    loans['pub_rec_bankruptcies'].value_counts().plot.barh()
+    plt.title("Filed Public Bankruptcies")
+    plt.xlabel("Count")
+    plt.ylabel("Number of Filing")
+    plt.show()
+    #### Very Few Appliant have filed for bankruptcies
+
+
+def plot_dti_distribution_univariate(loans):
+    sns.displot(data=loans, x=DEBT_TO_INCOME_RATIO)
+    plt.title("Distribution of Debt to Income Ratio")
+    plt.show()
+    ### Data seems to be normally distributed, Median and mean is almost eqauls
+
+
+def plot_address_state_distribution_univariate(loans):
+    plt.figure(figsize=(10, 5))
+    sns.barplot(data=loans[ADDRESS_STATE].value_counts().reset_index(), x='index', y='addr_state', )
+    plt.title("States of the Applicant")
+    plt.xlabel("States")
+    plt.ylabel("Count")
+    plt.xticks(rotation=90)
+    plt.show()
+    ### Highest Applicant are from CA,NY and lowest from NE,ME
+
+
+def plot_loan_purpose_distribution_univariate(loans):
+    plt.figure(figsize=(10, 5))
+    sns.barplot(data=loans[PURPOSE].value_counts().reset_index(), x='index', y="purpose", estimator=lambda x: np.sum(x))
+    plt.title("Purpose of the Loan")
+    plt.xticks(rotation=90)
+    plt.xlabel("Purpose")
+    plt.ylabel("Count")
+    plt.show()
+    ### Applicant is taking a loan for Debt_Consolidation, Credit Card
+
+
+def plot_verification_status_distribution_univariate(loans):
+    loans[VERIFICATION_STATUS].value_counts(1).plot.pie(autopct='%1.1f%%')
+    plt.title("Income Verification of the Loan Applicant")
+    plt.show()
+    #### 43% of applicant's income source wasn't verified
+
+
+def plot_annual_income_distribution_univariate(loans):
+    pd.options.display.float_format = '{:.2f}'.format
+    sns.histplot(data=loans, x=ANNUAL_INCOME, kde=True)
+    plt.title("Annual Income of the Applicant")
+    plt.show()
+    #### Data is Right Skew.
+    logging.info(loans[ANNUAL_INCOME].describe())
+    ## Average Income is greater than Median Income. Income ranges from 4,000 to 6,00,000
+
+
+def plot_home_ownership_distributions_univariate(loans):
+    loans['home_ownership'].value_counts().plot.barh()
+    plt.title("Home Ownership")
+    plt.show()
+    #### Applicants is living either on Rent or on Mortgage propoerty
+
+
+def plot_employment_length_distribution_univariate(loans):
+    loans[EMPLOYMENT_LENGTH].value_counts().plot.bar()
+    plt.title("Employment Length")
+    plt.xlabel("Years of experience")
+    plt.ylabel("Count of Applicant")
+    plt.show()
+    ### Most of the Applicant have 10Years of experience
+
+
+def plot_loan_sub_grade_distribution_univariate(loans):
+    loans[SUB_GRADE].value_counts().plot.bar(title='Sub Grade Frequency');
+    plt.xlabel("Sub Grade")
+    plt.ylabel("Count")
+    plt.show()
+    #### Many Users have been assigned with A4 grade, few people have been assigned with G5 grade
+    ### B3 garde is the highest in B grade
+
+
+def plot_loan_grade_distribution_univariate(loans):
+    loans[GRADE].value_counts().plot.bar(title='Grade Frequency');
+    plt.xlabel("Grade")
+    plt.ylabel("Count")
+    plt.show()
+    #### More Users have been assigned B grade, few people have been assigned with G grade
+
+
+def plot_interest_rate_distribution_univariate(loans):
+    sns.displot(data=loans, x=INTEREST_RATE, kind='hist', color='blue')
+    plt.title("Distribution of Interest Rate")
+    plt.show()
+
+
+def plot_term_counts_univariate(loans):
+    loans[TERM].value_counts(1).plot.pie();
+    ### Most of the users have taken a loan for shorter period i.e. 36 month compared to 60 months
+
+
+def plot_loan_requests_by_year_univariate(loans):
+    loans[ISSUE_YEAR].value_counts().plot.line();
+    plt.title("Year & Loan Request")
+    plt.xlabel("Year")
+    plt.ylabel("Count")
+    plt.show()
+    #### We are seeing number of loan request increasing year over year. Exponentiat growth can be seen
+    ### In 2011 we see highest number of loan request
+
+
+def plot_loan_requests_by_month_univariate(loans):
+    loans[ISSUE_MONTH].value_counts().plot.line();
+    plt.title("Month & Loan Request")
+    plt.xlabel("Month")
+    plt.ylabel("Count")
+    plt.show()
+    #### We are seeing number of loan request increasing as month passes.
+    ### In Dec we see highest number of loan request, lowest in Feb
+
+
+def plot_loan_amount_distribution_univariate(loans):
+    # Distribution of loan amount
+    plt.figure(figsize=(10, 5))
+    sns.histplot(data=loans, x=LOAN_AMOUNT, kde=True)
+    plt.title("Distribution of Loan Amount")
+    plt.show()
+    #### More numbers of loan were taken for amount 5000-1000. We see spike at multiples of 5000 i.e. 5000,10000,15000 etc
 
 
 # # EDA Plot Functions
@@ -359,8 +543,10 @@ def plot_loan_amount_across_time_by_loan_status(loans):
     plt.show()
 
 
-def plot_overall_charged_off_vs_paid(loans):
-    loans[LOAN_STATUS].value_counts(1).plot(kind='bar')
+def plot_pi_overall_charged_off_vs_paid(loans):
+    plt.pie(loans[LOAN_STATUS].value_counts(1), labels=loans[LOAN_STATUS].value_counts(1).index.to_list(),
+            explode=[0.1, 0.1], shadow=True, autopct='%.2f%%')
+    plt.title("% of Users")
     plt.show()
 
 
