@@ -15,3 +15,5 @@ fileignoreconfig:
   checksum: c67a95b6c36f22fb5739c67604e0aff4119c4e5a2100bc70b4e0bb7049362906
 - filename: lending-club-assignment/data/loan.csv
   checksum: 80a3a071f679103b07b29affff8117dec013ba192996ebbcc6b8ca190bc8a7d8
+- filename: lending-club-assignment/notebook/Group_Facilitator_Pramod_Yadav.ipynb
+  checksum: 4c84dd4672548de8d9560156facac15fc2323ae23ed7a5228c873dfc346290b8
