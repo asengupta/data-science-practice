@@ -35,7 +35,6 @@ import seaborn as sns
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_LOAN_CSV_FILENAME = "loan.csv"
-
 ID = "id"
 MEMBER_ID = "member_id"
 DELINQUENT_2_YEARS = 'delinq_2yrs'
@@ -92,11 +91,9 @@ DELINQ_AMNT = 'delinq_amnt'
 CHARGEOFF_WITHIN_12_MTHS = 'chargeoff_within_12_mths'
 ACC_NOW_DELINQ = 'acc_now_delinq'
 COLLECTIONS_12_MTHS_EX_MED = 'collections_12_mths_ex_med'
-
 FULLY_PAID = 'Fully Paid'
 CURRENT = 'Current'
 CHARGED_OFF = 'Charged Off'
-
 USELESS_COLUMNS = [TAX_LIENS, DELINQ_AMNT, CHARGEOFF_WITHIN_12_MTHS, ACC_NOW_DELINQ, COLLECTIONS_12_MTHS_EX_MED]
 CONSTANT_VALUED_COLUMNS = [PAYMENT_PLAN, INITIAL_LIST_STATUS, POLICY_CODE, EMPLOYMENT_TITLE, URL]
 CUSTOMER_BEHAVIOUR_COLUMNS = [DELINQUENT_2_YEARS, EARLIER_CREDIT_LINE, NUM_INQUIRIES_6_MONTHS, NUM_OPRN_CREDIT_LINES,
@@ -137,7 +134,7 @@ def non_null_loans(raw_loans):
     return loans_wo_nulls
 
 
-# ## Null Column Cleanup
+# ## Unindicative Columns Cleanup
 # These columns are not useful because they have values either 0 or Nan value
 def clean_useless_columns(loans):
     logging.debug(loans[COLLECTIONS_12_MTHS_EX_MED].value_counts())
@@ -247,86 +244,7 @@ def corrected_data_types(loans):
     return loans
 
 
-# This function plots various factors against each other for the purposes of EDA
-def analyse_bivariate(loans):
-    logging.info(loans.groupby(by=LOAN_STATUS)[LOAN_AMOUNT].describe())
-    #### Mean is higher in both the cases of loan_status with respect to median, this show right skew data
-    #### The user who is defaulter ask for higher loan amount compared to Non-Defaulter
-
-    pair_plot_across_all_attributes(loans)
-    plot_verification_status_for_independent_loan_statuses(loans)
-    plot_grade_subgrade_heatmap_by_loan_status(loans)
-    plot_yearly_monthly_by_loan_status(loans)
-
-
-def plot_verification_status_for_independent_loan_statuses(loans):
-    loan_status_by_verification_status = round(
-        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
-                                                                                                  axis=1) * 100, 2)
-    heading("Loan Status vs. Verification Status Statistics")
-    logging.info(loan_status_by_verification_status)
-    round(
-        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
-                                                                                                  axis=1) * 100,
-        2).plot.barh(figsize=(10, 10))
-    ##### Verified user are getting more default
-    plt.show()
-
-
-def plot_grade_subgrade_heatmap_by_loan_status(loans):
-    loans[LOAN_STATUS] = np.where(loans[LOAN_STATUS] == CHARGED_OFF, 1, 0)
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(data=loans.groupby(by=[GRADE, SUB_GRADE])[LOAN_STATUS].mean().unstack().fillna(-1), cmap='Reds')
-    plt.show()
-    #### Users who get F5 subgrade defaults more followed by G3
-
-
-def plot_yearly_monthly_by_loan_status(loans):
-    loans.groupby(by=[ISSUE_YEAR, ISSUE_MONTH])[LOAN_STATUS].sum().plot.bar(figsize=(20, 5),
-                                                                            title="Number of Defaulters YoY")
-    plt.xlabel("Issue Year & Month")
-    plt.ylabel("Defaulter Count")
-    plt.show()
-    ### Defaulters are increasing every year, though we have seen financial crisis in 2008, but they didn't defaulted much
-
-
-def pair_plot_across_all_attributes(loans):
-    sns.pairplot(data=loans)
-    plt.show()
-
-
-def analyse(loans):
-    analyse_univariate_unsegmented(loans)
-    analyse_univariate_segmented(loans)
-    analyse_bivariate(loans)
-
-
-# Segmented Univariate Analysis
-def analyse_univariate_segmented(loans):
-    plot_pi_overall_charged_off_vs_paid(loans)
-    plot_loan_amount_across_time_by_loan_status(loans)
-
-    for i in loans.select_dtypes(include=['int', 'float']).columns:
-        sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
-        plt.title("Loan Status vs " + i)
-        plt.show()
-    plot_requested_loan_amount_by_loan_status(loans)
-    plot_users_term_by_loan_status(loans)
-    loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
-    logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
-    plot_users_loan_category_by_loan_status(loans)
-    plot_installment_by_loan_status(loans)
-    loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
-                                                                                                             stacked=True)
-    plot_sub_grade_by_loan_status(loans)
-    plot_employment_length_by_loan_status(loans)
-    plot_home_ownership_by_loan_status(loans)
-    plot_annual_income_by_loan_status(loans)
-    logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
-    plot_restricted_annual_income_by_loan_status(loans)
-    plot_verification_status_by_loan_status(loans)
-
-
+# # Univariate (Unsegmented) Analysis
 def analyse_univariate_unsegmented(loans):
     plot_loan_amount_distribution_univariate(loans)
     plot_loan_requests_by_month_univariate(loans)
@@ -353,6 +271,53 @@ def analyse_univariate_unsegmented(loans):
     #### Very Few Appliant have filed for bankruptcies
 
 
+# # Segmented Univariate Analysis
+def analyse_univariate_segmented(loans):
+    plot_pi_overall_charged_off_vs_paid(loans)
+    plot_loan_amount_across_time_by_loan_status(loans)
+
+    for i in loans.select_dtypes(include=['int', 'float']).columns:
+        sns.boxplot(data=loans, x=LOAN_STATUS, y=i)
+        plt.title("Loan Status vs " + i)
+        plt.show()
+    plot_requested_loan_amount_by_loan_status(loans)
+    plot_users_term_by_loan_status(loans)
+    loans[INTEREST_RATE_CATEGORY] = pd.cut(loans[INTEREST_RATE], 4, labels=["low", "med", "high", "vhigh"])
+    logging.info(pd.cut(loans[INTEREST_RATE], 4, ).value_counts())
+    plot_users_loan_category_by_loan_status(loans)
+    plot_installment_by_loan_status(loans)
+    loans.groupby(by=[GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(kind='bar',
+                                                                                                             stacked=True)
+    plot_sub_grade_by_loan_status(loans)
+    plot_employment_length_by_loan_status(loans)
+    plot_home_ownership_by_loan_status(loans)
+    plot_annual_income_by_loan_status(loans)
+    logging.info(loans[ANNUAL_INCOME].describe().apply(lambda x: '%.5f' % x))
+    plot_restricted_annual_income_by_loan_status(loans)
+    plot_verification_status_by_loan_status(loans)
+
+
+# # Bivariate Analysis
+def analyse_bivariate(loans):
+    logging.info(loans.groupby(by=LOAN_STATUS)[LOAN_AMOUNT].describe())
+    #### Mean is higher in both the cases of loan_status with respect to median, this show right skew data
+    #### The user who is defaulter ask for higher loan amount compared to Non-Defaulter
+
+    pair_plot_across_all_attributes(loans)
+    plot_verification_status_for_independent_loan_statuses(loans)
+    plot_grade_subgrade_heatmap_by_loan_status(loans)
+    plot_yearly_monthly_by_loan_status(loans)
+
+
+# # Analysis Entry Point
+def analyse(loans):
+    analyse_univariate_unsegmented(loans)
+    analyse_univariate_segmented(loans)
+    analyse_bivariate(loans)
+
+
+# # EDA Plot Functions
+# This section contains all the plot functions used in Univariate (Segmented and Unsegmented) and Bivariate EDA
 def plot_dti_distribution_univariate(loans):
     sns.displot(data=loans, x=DEBT_TO_INCOME_RATIO)
     plt.title("Distribution of Debt to Income Ratio")
@@ -472,7 +437,6 @@ def plot_loan_amount_distribution_univariate(loans):
     #### More numbers of loan were taken for amount 5000-1000. We see spike at multiples of 5000 i.e. 5000,10000,15000 etc
 
 
-# # EDA Plot Functions
 def plot_sub_grade_by_loan_status(loans):
     plt.figure(figsize=(10, 6))
     loans.groupby(by=[SUB_GRADE])[LOAN_STATUS].value_counts().unstack().apply(lambda x: x / sum(x), axis=1).plot(
@@ -550,7 +514,43 @@ def plot_pi_overall_charged_off_vs_paid(loans):
     plt.show()
 
 
-# # Entry Point
+def plot_verification_status_for_independent_loan_statuses(loans):
+    loan_status_by_verification_status = round(
+        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
+                                                                                                  axis=1) * 100, 2)
+    heading("Loan Status vs. Verification Status Statistics")
+    logging.info(loan_status_by_verification_status)
+    round(
+        loans.groupby(by=[LOAN_STATUS, VERIFICATION_STATUS])[LOAN_STATUS].count().unstack().apply(lambda x: x / sum(x),
+                                                                                                  axis=1) * 100,
+        2).plot.barh(figsize=(10, 10))
+    ##### Verified user are getting more default
+    plt.show()
+
+
+def plot_grade_subgrade_heatmap_by_loan_status(loans):
+    loans[LOAN_STATUS] = np.where(loans[LOAN_STATUS] == CHARGED_OFF, 1, 0)
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(data=loans.groupby(by=[GRADE, SUB_GRADE])[LOAN_STATUS].mean().unstack().fillna(-1), cmap='Reds')
+    plt.show()
+    #### Users who get F5 subgrade defaults more followed by G3
+
+
+def plot_yearly_monthly_by_loan_status(loans):
+    loans.groupby(by=[ISSUE_YEAR, ISSUE_MONTH])[LOAN_STATUS].sum().plot.bar(figsize=(20, 5),
+                                                                            title="Number of Defaulters YoY")
+    plt.xlabel("Issue Year & Month")
+    plt.ylabel("Defaulter Count")
+    plt.show()
+    ### Defaulters are increasing every year, though we have seen financial crisis in 2008, but they didn't defaulted much
+
+
+def pair_plot_across_all_attributes(loans):
+    sns.pairplot(data=loans)
+    plt.show()
+
+
+# # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
 def study(raw_loans):
     logging.debug(raw_loans.head().to_string())
@@ -567,6 +567,7 @@ def study(raw_loans):
     analyse(loans_with_corrected_data_types)
 
 
+# # Utility Functions
 # This function reads command line arguments, one of which can be the input loan data set
 def parse_commandline_options(args):
     print(f"args are: {args}")
@@ -620,6 +621,7 @@ def heading(heading_text):
     logging.info("-" * 100)
 
 
+# # Main Entry Point: main()
 # This function is the entry point of the script
 def main():
     setup_logging()
