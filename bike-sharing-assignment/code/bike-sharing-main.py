@@ -33,6 +33,7 @@ import statsmodels.api as sm
 from matplotlib import pyplot as plt
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -111,7 +112,7 @@ def with_day(bikeshares):
     dates = pd.to_datetime(bikeshares.pop(Columns.DATE), format='%d-%m-%Y')
     log_df("Dates", dates)
     bikeshares[Columns.DAY] = pd.DatetimeIndex(dates).day
-    log_df("Bikeshares with Day", bikeshares, 200)
+    log_df("Bikeshares with Day", bikeshares, 20)
     return bikeshares
 
 
@@ -119,6 +120,7 @@ def with_day(bikeshares):
 # The function below performs some basic exploration of data to guide our search for relevant predictor variables. It does so by plotting correlations and heatmaps.
 def explore(bikeshares):
     plt.figure()
+    # Please note that generating the pairplot takes a little while due to the number of variables to plot. Please be patient while it does this.
     sns.pairplot(data=bikeshares)
     plt.show()
     plt.figure()
@@ -235,6 +237,8 @@ def predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduc
     plt.ylabel('y_pred', fontsize=16)  # Y-label
     plt.show()
 
+    return bikeshares_y_predictions, bikeshares_y_test
+
 
 # ## Verify Error Homoscedascity
 # This function plots the distribution of the error terms so that we may visually inspect whether the error terms (after applying the Linear Model to the Training data set) are normally distributed.
@@ -299,6 +303,12 @@ def regression_equation(lm):
     return f"Bike Rental Demand = {equation}"
 
 
+# Utility function to output the R2 Score of the Linear Model as required by the problem
+def output_r2_score(bikeshares_y_predictions, bikeshares_y_test):
+    heading("R2 Score")
+    logging.info(r2_score(bikeshares_y_test, bikeshares_y_predictions))
+
+
 # ## Entry Point for the CRISP-DM process
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
 def study(raw_bike_share_data):
@@ -318,8 +328,12 @@ def study(raw_bike_share_data):
 
     lm, bikeshares_x_training_reduced_columns = train(bikeshares_x_training, bikeshares_y_training)
     verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm)
-    predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns)
+    y_pred, y_test = predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns)
     output_final_model(lm)
+
+    # Including the output of the R2 Score as required by the problem
+    output_r2_score(y_pred, y_test)
+
 
 # ## Generic Application Utility Functions
 # This function reads command line arguments, one of which can be the input loan data set
