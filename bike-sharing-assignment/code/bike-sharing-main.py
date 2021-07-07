@@ -28,7 +28,12 @@ import sys
 import warnings
 
 import pandas as pd
+import statsmodels.api as sm
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_BIKE_SHARE_CSV_FILENAME = "day.csv"
@@ -48,23 +53,37 @@ class WeatherConstants:
     WEATHER_4 = "Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog"
 
 
-season_categorical_mapping = {1: SeasonConstants.SEASON_1,
+SEASON_CATEGORICAL_MAPPING = {1: SeasonConstants.SEASON_1,
                               2: SeasonConstants.SEASON_2,
                               3: SeasonConstants.SEASON_3,
                               4: SeasonConstants.SEASON_4}
 
-weather_categorical_mapping = {1: WeatherConstants.WEATHER_1,
+WEATHER_CATEGORICAL_MAPPING = {1: WeatherConstants.WEATHER_1,
                                2: WeatherConstants.WEATHER_2,
                                3: WeatherConstants.WEATHER_3,
                                4: WeatherConstants.WEATHER_4}
 
 
 class Columns:
+    HOLIDAY = "holiday"
     SEASON = "season"
     WEATHER = "weathersit"
     DATE = "dteday"
     DAY = "day"
     INSTANT = "instant"
+    TEMPERATURE = 'temp'
+    FEELING_TEMPERATURE = 'atemp'
+    HUMIDITY = 'hum'
+    WINDSPEED = 'windspeed'
+    DAY_OF_WEEK = "weekday"
+    MONTH = "mnth"
+    CASUAL_COUNT = "casual"
+    REGISTERED_COUNT = "registered"
+
+
+COLUMNS_TO_SCALE = [Columns.TEMPERATURE, Columns.FEELING_TEMPERATURE,
+                    Columns.HUMIDITY, Columns.WINDSPEED, Columns.DAY,
+                    Columns.DAY_OF_WEEK, Columns.MONTH]
 
 
 # ## Null Column Cleanup
@@ -88,8 +107,96 @@ def with_day(bikeshares):
     return bikeshares
 
 
+# # Initial Observations
+# - `cnt` has a definite positive correlation with `temp`, `atemp`
+# - `cnt` has a definite positive correlation with `casual`
+# - `cnt` has a strong positive correlation with `registered`
+# - `cnt` has a correlation with `mnth`, but it is not linear
+# - If it's a holiday, `cnt` seems to be lower, considering higher percentiles
 def explore(bikeshares):
+    # plt.figure()
+    # sns.pairplot(data=bikeshares)
+    # plt.show()
     pass
+
+
+def scale(bikeshares):
+    test_data_scaler = MinMaxScaler()
+    bikeshares[COLUMNS_TO_SCALE] = test_data_scaler.fit_transform(bikeshares[COLUMNS_TO_SCALE])
+    log_df("Bikeshares after Scaling", bikeshares)
+    return bikeshares, test_data_scaler
+
+
+def train(bikeshares_x_training, bikeshares_y_training):
+    lm_0 = LinearRegression()
+    lm_0.fit(bikeshares_x_training, bikeshares_y_training)
+    bikeshares_x_training_rfe_0 = rfe_dummy(bikeshares_x_training, bikeshares_y_training, lm_0)
+    bikeshares_x_training_rfe_0 = sm.add_constant(bikeshares_x_training_rfe_0)
+    lm_0 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_0).fit()  # Running the linear model
+
+    summarise_model(bikeshares_x_training_rfe_0, lm_0)
+
+    # Drop `atemp`, it has high p-value and high VIF
+    bikeshares_x_training_rfe_1 = bikeshares_x_training_rfe_0.drop([Columns.FEELING_TEMPERATURE], axis = 1)
+    log_df("#1 Bikeshare", bikeshares_x_training_rfe_1)
+    lm_1 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_1).fit()  # Running the linear model
+
+    summarise_model(bikeshares_x_training_rfe_1, lm_1)
+
+    # Drop `month`, has high p-value and VIF~3.91
+    bikeshares_x_training_rfe_2 = bikeshares_x_training_rfe_1.drop([Columns.MONTH], axis = 1)
+    log_df("#2 Bikeshare", bikeshares_x_training_rfe_2)
+    lm_2 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_2).fit()  # Running the linear model
+
+    summarise_model(bikeshares_x_training_rfe_2, lm_2)
+
+    # Drop `day`, has high p-value but low VIF
+    bikeshares_x_training_rfe_3 = bikeshares_x_training_rfe_2.drop([Columns.DAY], axis = 1)
+    log_df("#3 Bikeshare", bikeshares_x_training_rfe_3)
+    lm_3 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_3).fit()  # Running the linear model
+
+    summarise_model(bikeshares_x_training_rfe_3, lm_3)
+
+    # Drop `workingday`, has high p-value > 0.005 but low VIF
+    bikeshares_x_training_rfe_4 = bikeshares_x_training_rfe_3.drop([Columns.HOLIDAY], axis = 1)
+    log_df("#4 Bikeshare", bikeshares_x_training_rfe_4)
+    lm_4 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_4).fit()  # Running the linear model
+
+    summarise_model(bikeshares_x_training_rfe_4, lm_4)
+
+
+def summarise_model(bikeshares_x_training, lm):
+    heading("Model Summary")
+    logging.info(lm.summary())
+    vif_x(bikeshares_x_training)
+
+
+def vif_x(bikeshares_x_training):
+    vif = pd.DataFrame()
+    vif['Features'] = bikeshares_x_training.columns
+    vif['VIF'] = [variance_inflation_factor(bikeshares_x_training.values, i) for i in range(
+        bikeshares_x_training.shape[1])]
+    vif['VIF'] = round(vif['VIF'], 2)
+    vif = vif.sort_values(by="VIF", ascending=False)
+    log_df('Variance Inflation Factors', vif)
+
+
+def rfe_dummy(bikeshares_x_training, bikeshares_y_training, lm):
+    return bikeshares_x_training
+
+
+def rfe_real(bikeshares_x_training, bikeshares_y_training, lm):
+    rfe = RFE(lm, 9)  # running RFE
+    rfe = rfe.fit(bikeshares_x_training, bikeshares_y_training)
+    print(list(zip(bikeshares_x_training.columns, rfe.support_, rfe.ranking_)))
+    relevant_columns_from_rfe = bikeshares_x_training.columns[rfe.support_]
+    heading("Selected columns from RFE")
+    logging.info(relevant_columns_from_rfe)
+    heading("Dropped columns from RFE")
+    logging.info(bikeshares_x_training.columns[~rfe.support_])
+    bikeshares_x_training_rfe = bikeshares_x_training[relevant_columns_from_rfe]
+    return bikeshares_x_training_rfe
+
 
 # # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
@@ -102,7 +209,12 @@ def study(raw_bike_share_data):
     bikeshares_master = prepared(bikeshares)
     log_df("BIKESHARES", bikeshares_master, 10)
     bikeshares_training, bikeshares_test = test_train_split(bikeshares_master)
+    bikeshares_training, scaler = scale(bikeshares_training)
     explore(bikeshares_training)
+
+    bikeshares_y_training = bikeshares_training.pop('cnt')
+    bikeshares_x_training = bikeshares_training
+    train(bikeshares_x_training, bikeshares_y_training)
 
 
 def test_train_split(bikeshares_master):
@@ -115,9 +227,12 @@ def test_train_split(bikeshares_master):
 
 
 def prepared(bikeshares):
-    bikeshares_without_unneeded_columns = bikeshares.drop(Columns.INSTANT, axis=1)
-    map_season = with_dummies_builder(Columns.SEASON, season_categorical_mapping)
-    map_weather = with_dummies_builder(Columns.WEATHER, weather_categorical_mapping)
+    # Registered and casual counts should not be used to determine total demand, because they are dependent variables as well,
+    # Separate analysis needs to be done to determine dependency of these values on the factors.
+    bikeshares_without_unneeded_columns = bikeshares.drop(
+        [Columns.INSTANT, Columns.CASUAL_COUNT, Columns.REGISTERED_COUNT], axis=1)
+    map_season = with_dummies_builder(Columns.SEASON, SEASON_CATEGORICAL_MAPPING)
+    map_weather = with_dummies_builder(Columns.WEATHER, WEATHER_CATEGORICAL_MAPPING)
     return map_weather(map_season(with_day(bikeshares_without_unneeded_columns)))
 
 
@@ -126,7 +241,7 @@ def with_dummies_builder(categorical_column, category_mapping):
 
 
 def with_dummy_variables(bikeshares, categorical_column, category_mapping):
-    seasons = pd.get_dummies(bikeshares.pop(categorical_column), drop_first=False)
+    seasons = pd.get_dummies(bikeshares.pop(categorical_column), drop_first=True)
     log_df(f"{categorical_column} before Renaming of Dummy Variables", seasons)
     seasons = seasons.rename(columns=category_mapping)
     log_df(f"{categorical_column} after Renaming of Dummy Variables", seasons)
