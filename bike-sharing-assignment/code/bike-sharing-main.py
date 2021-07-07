@@ -117,9 +117,12 @@ def with_day(bikeshares):
 # - `cnt` has a correlation with `mnth`, but it is not linear
 # - If it's a holiday, `cnt` seems to be lower, considering higher percentiles
 def explore(bikeshares):
-    # plt.figure()
-    # sns.pairplot(data=bikeshares)
-    # plt.show()
+    plt.figure()
+    sns.pairplot(data=bikeshares)
+    plt.show()
+    plt.figure()
+    sns.heatmap(bikeshares.corr(), cmap="YlGnBu", annot=True, annot_kws={"size": 5})
+    plt.show()
     pass
 
 
@@ -317,9 +320,9 @@ def setup_logging():
     logger = logging.getLogger()
     formatter = logging.Formatter('%(message)s')
     ch = logging.StreamHandler()
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logging.INFO)
     ch.setFormatter(formatter)
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
     logger.addHandler(ch)
 
 
