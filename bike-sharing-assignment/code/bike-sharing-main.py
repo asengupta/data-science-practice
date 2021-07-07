@@ -28,7 +28,9 @@ import sys
 import warnings
 
 import pandas as pd
+import seaborn as sns
 import statsmodels.api as sm
+from matplotlib import pyplot as plt
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
@@ -65,6 +67,7 @@ WEATHER_CATEGORICAL_MAPPING = {1: WeatherConstants.WEATHER_1,
 
 
 class Columns:
+    WORKING_DAY = "workingday"
     HOLIDAY = "holiday"
     SEASON = "season"
     WEATHER = "weathersit"
@@ -128,41 +131,40 @@ def scale(bikeshares):
 
 
 def train(bikeshares_x_training, bikeshares_y_training):
-    lm_0 = LinearRegression()
-    lm_0.fit(bikeshares_x_training, bikeshares_y_training)
-    bikeshares_x_training_rfe_0 = rfe_dummy(bikeshares_x_training, bikeshares_y_training, lm_0)
-    bikeshares_x_training_rfe_0 = sm.add_constant(bikeshares_x_training_rfe_0)
-    lm_0 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_0).fit()  # Running the linear model
+    lr = LinearRegression()
+    lr.fit(bikeshares_x_training, bikeshares_y_training)
+    bikeshares_x_training_0 = rfe_dummy(bikeshares_x_training, bikeshares_y_training, lr)
+    bikeshares_x_training_0 = sm.add_constant(bikeshares_x_training_0)
 
-    summarise_model(bikeshares_x_training_rfe_0, lm_0)
+    # Drop nothing in first iteration, just build model
+    lm_0, bikeshares_x_training_0 = simplify_model([], bikeshares_x_training_0,
+                                                   bikeshares_y_training)
 
     # Drop `atemp`, it has high p-value and high VIF
-    bikeshares_x_training_rfe_1 = bikeshares_x_training_rfe_0.drop([Columns.FEELING_TEMPERATURE], axis = 1)
-    log_df("#1 Bikeshare", bikeshares_x_training_rfe_1)
-    lm_1 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_1).fit()  # Running the linear model
-
-    summarise_model(bikeshares_x_training_rfe_1, lm_1)
+    lm_1, bikeshares_x_training_1 = simplify_model([Columns.FEELING_TEMPERATURE], bikeshares_x_training_0,
+                                                   bikeshares_y_training)
 
     # Drop `month`, has high p-value and VIF~3.91
-    bikeshares_x_training_rfe_2 = bikeshares_x_training_rfe_1.drop([Columns.MONTH], axis = 1)
-    log_df("#2 Bikeshare", bikeshares_x_training_rfe_2)
-    lm_2 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_2).fit()  # Running the linear model
-
-    summarise_model(bikeshares_x_training_rfe_2, lm_2)
+    lm_2, bikeshares_x_training_2 = simplify_model([Columns.MONTH], bikeshares_x_training_1,
+                                                   bikeshares_y_training)
 
     # Drop `day`, has high p-value but low VIF
-    bikeshares_x_training_rfe_3 = bikeshares_x_training_rfe_2.drop([Columns.DAY], axis = 1)
-    log_df("#3 Bikeshare", bikeshares_x_training_rfe_3)
-    lm_3 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_3).fit()  # Running the linear model
-
-    summarise_model(bikeshares_x_training_rfe_3, lm_3)
+    lm_3, bikeshares_x_training_3 = simplify_model([Columns.DAY], bikeshares_x_training_2,
+                                                   bikeshares_y_training)
 
     # Drop `workingday`, has high p-value > 0.005 but low VIF
-    bikeshares_x_training_rfe_4 = bikeshares_x_training_rfe_3.drop([Columns.HOLIDAY], axis = 1)
-    log_df("#4 Bikeshare", bikeshares_x_training_rfe_4)
-    lm_4 = sm.OLS(bikeshares_y_training, bikeshares_x_training_rfe_4).fit()  # Running the linear model
+    lm_4, bikeshares_x_training_4 = simplify_model([Columns.WORKING_DAY], bikeshares_x_training_3,
+                                                   bikeshares_y_training)
 
-    summarise_model(bikeshares_x_training_rfe_4, lm_4)
+    return lm_4, bikeshares_x_training_4
+
+
+def simplify_model(columns_to_drop, bikeshares_x_training, bikeshares_y_training):
+    bikeshares_x_training_dropped = bikeshares_x_training.drop(columns_to_drop, axis=1)
+    log_df("#1 Bikeshare", bikeshares_x_training_dropped)
+    linear_model = sm.OLS(bikeshares_y_training, bikeshares_x_training_dropped).fit()
+    summarise_model(bikeshares_x_training_dropped, linear_model)
+    return linear_model, bikeshares_x_training_dropped
 
 
 def summarise_model(bikeshares_x_training, lm):
@@ -214,7 +216,36 @@ def study(raw_bike_share_data):
 
     bikeshares_y_training = bikeshares_training.pop('cnt')
     bikeshares_x_training = bikeshares_training
-    train(bikeshares_x_training, bikeshares_y_training)
+
+    lm, bikeshares_x_training_reduced_columns = train(bikeshares_x_training, bikeshares_y_training)
+    verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm)
+    predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns)
+
+
+def predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns):
+    bikeshares_y_test = bikeshares_test.pop('cnt')
+    bikeshares_x_test = bikeshares_test
+    bikeshares_x_test[COLUMNS_TO_SCALE] = scaler.transform(bikeshares_x_test[COLUMNS_TO_SCALE])
+    bikeshares_x_test = sm.add_constant(bikeshares_x_test)
+    bikeshares_x_test_reduced_columns = bikeshares_x_test[bikeshares_x_training_reduced_columns.columns]
+
+    bikeshares_y_predictions = lm.predict(bikeshares_x_test_reduced_columns)
+
+    fig = plt.figure()
+    plt.scatter(bikeshares_y_test, bikeshares_y_predictions)
+    fig.suptitle('y_test vs y_pred', fontsize=20)  # Plot heading
+    plt.xlabel('y_test', fontsize=18)  # X-label
+    plt.ylabel('y_pred', fontsize=16)  # Y-label
+    plt.show()
+
+
+def verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm):
+    bikeshares_y_training_prediction = lm.predict(bikeshares_x_training_reduced_columns)
+    fig = plt.figure()
+    sns.distplot((bikeshares_y_training - bikeshares_y_training_prediction), bins=20)
+    fig.suptitle('Error Terms', fontsize=20)  # Plot heading
+    plt.xlabel('Errors', fontsize=18)  # X-label
+    plt.show()
 
 
 def test_train_split(bikeshares_master):
