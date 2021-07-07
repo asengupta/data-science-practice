@@ -27,18 +27,88 @@ import logging
 import sys
 import warnings
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_BIKE_SHARE_CSV_FILENAME = "day.csv"
+
+
+class SeasonConstants:
+    SEASON_1 = "spring"
+    SEASON_2 = "summer"
+    SEASON_3 = "fall"
+    SEASON_4 = "winter"
+
+
+class WeatherConstants:
+    WEATHER_1 = "Clear, Few clouds, Partly cloudy, Partly cloudy"
+    WEATHER_2 = "Mist + Cloudy, Mist + Broken clouds, Mist + Few clouds, Mist"
+    WEATHER_3 = "Light Snow, Light Rain + Thunderstorm + Scattered clouds, Light Rain + Scattered clouds"
+    WEATHER_4 = "Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog"
+
+
+season_categorical_mapping = {1: SeasonConstants.SEASON_1,
+                              2: SeasonConstants.SEASON_2,
+                              3: SeasonConstants.SEASON_3,
+                              4: SeasonConstants.SEASON_4}
+
+weather_categorical_mapping = {1: WeatherConstants.WEATHER_1,
+                               2: WeatherConstants.WEATHER_2,
+                               3: WeatherConstants.WEATHER_3,
+                               4: WeatherConstants.WEATHER_4}
+
+
+class Columns:
+    SEASON = "season"
+    WEATHER = "weathersit"
+    DATE = "dteday"
+    DAY = "day"
+
+
+# ## Null Column Cleanup
+# The loan dataset has several columns which are completely empty. These are useless for analysis.
+# This function drops completely null columns.
+def clean_null_columns(bikeshares):
+    heading("Null Entries Statistics")
+    null_entry_statistics = bikeshares.isnull().sum() / len(bikeshares.index)
+    logging.info(null_entry_statistics)
+    null_columns = null_entry_statistics[null_entry_statistics == 1.0].index.to_numpy()
+    heading("Completely Null Columns")
+    logging.info(null_columns)
+    return bikeshares.drop(null_columns, axis=1)
+
+
+def with_day(bikeshares):
+    dates = pd.to_datetime(bikeshares.pop(Columns.DATE), format='%d-%m-%Y')
+    log_df("Dates", dates)
+    bikeshares[Columns.DAY] = pd.DatetimeIndex(dates).day
+    log_df("Bikeshares with Day", bikeshares, 200)
+    return bikeshares
+
 
 # # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
 def study(raw_bike_share_data):
     logging.debug(raw_bike_share_data.head().to_string())
+    logging.debug(raw_bike_share_data.shape)
+    logging.debug(raw_bike_share_data.columns)
+    bikeshares = clean_null_columns(raw_bike_share_data)
+    log_df("Weather 4 data point does not exist in dataset", bikeshares[bikeshares[Columns.WEATHER] == 4])
+    bikeshares_with_day = with_day(bikeshares)
+    bikeshares_w_day_dummy_season = with_dummy_variables(bikeshares_with_day, Columns.SEASON,
+                                                         season_categorical_mapping)
+    bikeshares_w_day_dummy_season_weather = with_dummy_variables(bikeshares_w_day_dummy_season, Columns.WEATHER,
+                                                                 weather_categorical_mapping)
+    log_df("BIKESHARES", bikeshares_w_day_dummy_season_weather, 10)
+
+
+def with_dummy_variables(bikeshares, categorical_column, category_mapping):
+    seasons = pd.get_dummies(bikeshares.pop(categorical_column), drop_first=False)
+    log_df(f"{categorical_column} before Renaming of Dummy Variables", seasons)
+    seasons = seasons.rename(columns=category_mapping)
+    log_df(f"{categorical_column} after Renaming of Dummy Variables", seasons)
+    bikeshares_w_dummy_seasons = pd.concat([bikeshares, seasons], axis=1)
+    return bikeshares_w_dummy_seasons
 
 
 # # Utility Functions
@@ -94,6 +164,12 @@ def heading(heading_text):
     logging.info("-" * 100)
     logging.info(heading_text)
     logging.info("-" * 100)
+
+
+# This utility function pretty prints a dataframe for output
+def log_df(dataframe_label, dataframe, num_rows=10):
+    heading(dataframe_label)
+    logging.info(dataframe.head(num_rows).to_string())
 
 
 # # Main Entry Point: main()
