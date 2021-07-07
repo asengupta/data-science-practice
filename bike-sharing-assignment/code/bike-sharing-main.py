@@ -28,6 +28,7 @@ import sys
 import warnings
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_BIKE_SHARE_CSV_FILENAME = "day.csv"
@@ -63,12 +64,13 @@ class Columns:
     WEATHER = "weathersit"
     DATE = "dteday"
     DAY = "day"
+    INSTANT = "instant"
 
 
 # ## Null Column Cleanup
 # The loan dataset has several columns which are completely empty. These are useless for analysis.
 # This function drops completely null columns.
-def clean_null_columns(bikeshares):
+def without_null_columns(bikeshares):
     heading("Null Entries Statistics")
     null_entry_statistics = bikeshares.isnull().sum() / len(bikeshares.index)
     logging.info(null_entry_statistics)
@@ -86,20 +88,41 @@ def with_day(bikeshares):
     return bikeshares
 
 
+def explore(bikeshares):
+    pass
+
 # # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
 def study(raw_bike_share_data):
     logging.debug(raw_bike_share_data.head().to_string())
     logging.debug(raw_bike_share_data.shape)
     logging.debug(raw_bike_share_data.columns)
-    bikeshares = clean_null_columns(raw_bike_share_data)
+    bikeshares = without_null_columns(raw_bike_share_data)
     log_df("Weather 4 data point does not exist in dataset", bikeshares[bikeshares[Columns.WEATHER] == 4])
-    bikeshares_with_day = with_day(bikeshares)
-    bikeshares_w_day_dummy_season = with_dummy_variables(bikeshares_with_day, Columns.SEASON,
-                                                         season_categorical_mapping)
-    bikeshares_w_day_dummy_season_weather = with_dummy_variables(bikeshares_w_day_dummy_season, Columns.WEATHER,
-                                                                 weather_categorical_mapping)
-    log_df("BIKESHARES", bikeshares_w_day_dummy_season_weather, 10)
+    bikeshares_master = prepared(bikeshares)
+    log_df("BIKESHARES", bikeshares_master, 10)
+    bikeshares_training, bikeshares_test = test_train_split(bikeshares_master)
+    explore(bikeshares_training)
+
+
+def test_train_split(bikeshares_master):
+    bikeshares_training, bikeshares_test = train_test_split(bikeshares_master, train_size=0.7, test_size=0.3,
+                                                            random_state=100)
+    heading("TEST / TRAIN SPLIT")
+    logging.info(f"Training set has {len(bikeshares_training)} vectors")
+    logging.info(f"Test set has {len(bikeshares_test)} vectors")
+    return bikeshares_training, bikeshares_test
+
+
+def prepared(bikeshares):
+    bikeshares_without_unneeded_columns = bikeshares.drop(Columns.INSTANT, axis=1)
+    map_season = with_dummies_builder(Columns.SEASON, season_categorical_mapping)
+    map_weather = with_dummies_builder(Columns.WEATHER, weather_categorical_mapping)
+    return map_weather(map_season(with_day(bikeshares_without_unneeded_columns)))
+
+
+def with_dummies_builder(categorical_column, category_mapping):
+    return lambda bikeshares: with_dummy_variables(bikeshares, categorical_column, category_mapping)
 
 
 def with_dummy_variables(bikeshares, categorical_column, category_mapping):
