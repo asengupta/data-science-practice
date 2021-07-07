@@ -19,9 +19,9 @@
 #
 # and running the following:
 #
-# ``p2j -o code/bike-sharing-main.py -t notebook/bike-sharing-main.ipynb``
+# ``p2j -o code/bike-sharing-main.py -t notebook/bike-sharing-assignment-notebook.ipynb``
 
-# # Library Imports
+# ## Library Imports
 import getopt
 import logging
 import sys
@@ -37,6 +37,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
+# ## Constants
+# Setting up constants, so that magic strings are not repeated in the code
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_BIKE_SHARE_CSV_FILENAME = "day.csv"
 
@@ -55,6 +57,7 @@ class WeatherConstants:
     WEATHER_4 = "Heavy Rain + Ice Pallets + Thunderstorm + Mist, Snow + Fog"
 
 
+# Setting up mapping of categorical levels to proper names to avoid confusion
 SEASON_CATEGORICAL_MAPPING = {1: SeasonConstants.SEASON_1,
                               2: SeasonConstants.SEASON_2,
                               3: SeasonConstants.SEASON_3,
@@ -84,6 +87,7 @@ class Columns:
     REGISTERED_COUNT = "registered"
 
 
+# These will be the columns that will be scaled in the training set. The same scaling will be applied to the test set.
 COLUMNS_TO_SCALE = [Columns.TEMPERATURE, Columns.FEELING_TEMPERATURE,
                     Columns.HUMIDITY, Columns.WINDSPEED, Columns.DAY,
                     Columns.DAY_OF_WEEK, Columns.MONTH]
@@ -102,6 +106,7 @@ def without_null_columns(bikeshares):
     return bikeshares.drop(null_columns, axis=1)
 
 
+# ## Extract Day from Date
 def with_day(bikeshares):
     dates = pd.to_datetime(bikeshares.pop(Columns.DATE), format='%d-%m-%Y')
     log_df("Dates", dates)
@@ -110,12 +115,8 @@ def with_day(bikeshares):
     return bikeshares
 
 
-# # Initial Observations
-# - `cnt` has a definite positive correlation with `temp`, `atemp`
-# - `cnt` has a definite positive correlation with `casual`
-# - `cnt` has a strong positive correlation with `registered`
-# - `cnt` has a correlation with `mnth`, but it is not linear
-# - If it's a holiday, `cnt` seems to be lower, considering higher percentiles
+# ## Exploratory Data Analysis
+# The function below performs some basic exploration of data to guide our search for relevant predictor variables. It does so by plotting correlations and heatmaps.
 def explore(bikeshares):
     plt.figure()
     sns.pairplot(data=bikeshares)
@@ -123,9 +124,17 @@ def explore(bikeshares):
     plt.figure()
     sns.heatmap(bikeshares.corr(), cmap="YlGnBu", annot=True, annot_kws={"size": 5})
     plt.show()
-    pass
 
 
+# ## Initial Impressions
+# - `cnt` has a definite positive correlation with `temp`, `atemp`
+# - `cnt` has a definite positive correlation with `casual`
+# - `cnt` has a strong positive correlation with `registered`
+# - `cnt` has a correlation with `mnth`, but it is not linear
+# - If it's a holiday, `cnt` seems to be lower, considering higher percentiles
+
+# ## Scaling of the dataset
+# This scaling occurs only once for the training dataset. The scaler is reused to scale the test data set.
 def scale(bikeshares):
     test_data_scaler = MinMaxScaler()
     bikeshares[COLUMNS_TO_SCALE] = test_data_scaler.fit_transform(bikeshares[COLUMNS_TO_SCALE])
@@ -133,6 +142,8 @@ def scale(bikeshares):
     return bikeshares, test_data_scaler
 
 
+# ## Training the Linear Regression Model
+# This trains the linear model using the training data set. Successively, the `atemp`, `month`, `day`, and `workingday` are dropped based on the combination of **Variance Inflation Factors** and **p-values**.
 def train(bikeshares_x_training, bikeshares_y_training):
     lr = LinearRegression()
     lr.fit(bikeshares_x_training, bikeshares_y_training)
@@ -162,6 +173,7 @@ def train(bikeshares_x_training, bikeshares_y_training):
     return lm_4, bikeshares_x_training_4
 
 
+# Utility function to make the dropping of columns, and retraining the model, less repetitive
 def simplify_model(columns_to_drop, bikeshares_x_training, bikeshares_y_training):
     bikeshares_x_training_dropped = bikeshares_x_training.drop(columns_to_drop, axis=1)
     log_df("#1 Bikeshare", bikeshares_x_training_dropped)
@@ -170,12 +182,14 @@ def simplify_model(columns_to_drop, bikeshares_x_training, bikeshares_y_training
     return linear_model, bikeshares_x_training_dropped
 
 
+# Utility function to summarise the model after every simplification of the Linear Model
 def summarise_model(bikeshares_x_training, lm):
     heading("Model Summary")
     logging.info(lm.summary())
     vif_x(bikeshares_x_training)
 
 
+# Utility function to summarise the Variance Inflation Factors of the model after every simplification of the Linear Model
 def vif_x(bikeshares_x_training):
     vif = pd.DataFrame()
     vif['Features'] = bikeshares_x_training.columns
@@ -186,10 +200,12 @@ def vif_x(bikeshares_x_training):
     log_df('Variance Inflation Factors', vif)
 
 
+# Dummy function, which will not do Recursive Factor Elimination
 def rfe_dummy(bikeshares_x_training, bikeshares_y_training, lm):
     return bikeshares_x_training
 
 
+# Function, which performs Recursive Factor Elimination, if the automatic approach needs to be done in this code. Please note that the full reduction cycle of the linear model using this as the initial process, has not been tested.
 def rfe_real(bikeshares_x_training, bikeshares_y_training, lm):
     rfe = RFE(lm, 9)  # running RFE
     rfe = rfe.fit(bikeshares_x_training, bikeshares_y_training)
@@ -201,28 +217,6 @@ def rfe_real(bikeshares_x_training, bikeshares_y_training, lm):
     logging.info(bikeshares_x_training.columns[~rfe.support_])
     bikeshares_x_training_rfe = bikeshares_x_training[relevant_columns_from_rfe]
     return bikeshares_x_training_rfe
-
-
-# # Entry Point for CRISPR
-#  This function is the entry point for the entire CRISPR process. This is called by `main()`
-def study(raw_bike_share_data):
-    logging.debug(raw_bike_share_data.head().to_string())
-    logging.debug(raw_bike_share_data.shape)
-    logging.debug(raw_bike_share_data.columns)
-    bikeshares = without_null_columns(raw_bike_share_data)
-    log_df("Weather 4 data point does not exist in dataset", bikeshares[bikeshares[Columns.WEATHER] == 4])
-    bikeshares_master = prepared(bikeshares)
-    log_df("BIKESHARES", bikeshares_master, 10)
-    bikeshares_training, bikeshares_test = test_train_split(bikeshares_master)
-    bikeshares_training, scaler = scale(bikeshares_training)
-    explore(bikeshares_training)
-
-    bikeshares_y_training = bikeshares_training.pop('cnt')
-    bikeshares_x_training = bikeshares_training
-
-    lm, bikeshares_x_training_reduced_columns = train(bikeshares_x_training, bikeshares_y_training)
-    verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm)
-    predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns)
 
 
 def predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns):
@@ -242,6 +236,8 @@ def predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduc
     plt.show()
 
 
+# ## Verify Error Homoscedascity
+# This function plots the distribution of the error terms so that we may visually inspect whether the error terms (after applying the Linear Model to the Training data set) are normally distributed.
 def verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm):
     bikeshares_y_training_prediction = lm.predict(bikeshares_x_training_reduced_columns)
     fig = plt.figure()
@@ -251,6 +247,8 @@ def verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshare
     plt.show()
 
 
+# ## Test Data / Training Data Split
+# This function splits the master data set into the Test and Training data sets for future model evaluation.
 def test_train_split(bikeshares_master):
     bikeshares_training, bikeshares_test = train_test_split(bikeshares_master, train_size=0.7, test_size=0.3,
                                                             random_state=100)
@@ -260,9 +258,9 @@ def test_train_split(bikeshares_master):
     return bikeshares_training, bikeshares_test
 
 
+# ## Initial Data Preparation
+# This function is responsible for dropping unneeded columns, and converting categorical variables into dummy variables.
 def prepared(bikeshares):
-    # Registered and casual counts should not be used to determine total demand, because they are dependent variables as well,
-    # Separate analysis needs to be done to determine dependency of these values on the factors.
     bikeshares_without_unneeded_columns = bikeshares.drop(
         [Columns.INSTANT, Columns.CASUAL_COUNT, Columns.REGISTERED_COUNT], axis=1)
     map_season = with_dummies_builder(Columns.SEASON, SEASON_CATEGORICAL_MAPPING)
@@ -274,6 +272,7 @@ def with_dummies_builder(categorical_column, category_mapping):
     return lambda bikeshares: with_dummy_variables(bikeshares, categorical_column, category_mapping)
 
 
+# This function actually performs the dummy variable setup
 def with_dummy_variables(bikeshares, categorical_column, category_mapping):
     seasons = pd.get_dummies(bikeshares.pop(categorical_column), drop_first=True)
     log_df(f"{categorical_column} before Renaming of Dummy Variables", seasons)
@@ -283,7 +282,46 @@ def with_dummy_variables(bikeshares, categorical_column, category_mapping):
     return bikeshares_w_dummy_seasons
 
 
-# # Utility Functions
+# ## Problem-specific Utility Functions
+# Utility function to output the final Linear Model, together with a representation of the actual linear equation
+def output_final_model(lm):
+    heading("FINAL MODEL")
+    logging.info(lm.summary())
+    equation = regression_equation(lm)
+    heading("FINAL EQUATION")
+    logging.info(equation)
+
+
+# Utility function to build the equation representation of the Linear Model
+def regression_equation(lm):
+    terms = lm.params.index.map(lambda index: f"({lm.params[index]} x {index})")
+    equation = " + ".join(terms)
+    return f"Bike Rental Demand = {equation}"
+
+
+# ## Entry Point for the CRISP-DM process
+#  This function is the entry point for the entire CRISPR process. This is called by `main()`
+def study(raw_bike_share_data):
+    logging.debug(raw_bike_share_data.head().to_string())
+    logging.debug(raw_bike_share_data.shape)
+    logging.debug(raw_bike_share_data.columns)
+    bikeshares = without_null_columns(raw_bike_share_data)
+    log_df("Weather 4 data point does not exist in dataset", bikeshares[bikeshares[Columns.WEATHER] == 4])
+    bikeshares_master = prepared(bikeshares)
+    log_df("BIKESHARES", bikeshares_master, 10)
+    bikeshares_training, bikeshares_test = test_train_split(bikeshares_master)
+    bikeshares_training, scaler = scale(bikeshares_training)
+    explore(bikeshares_training)
+
+    bikeshares_y_training = bikeshares_training.pop('cnt')
+    bikeshares_x_training = bikeshares_training
+
+    lm, bikeshares_x_training_reduced_columns = train(bikeshares_x_training, bikeshares_y_training)
+    verify_error_homoscedascity(bikeshares_x_training_reduced_columns, bikeshares_y_training, lm)
+    predict_on_test_set(scaler, lm, bikeshares_test, bikeshares_x_training_reduced_columns)
+    output_final_model(lm)
+
+# ## Generic Application Utility Functions
 # This function reads command line arguments, one of which can be the input loan data set
 def parse_commandline_options(args):
     print(f"args are: {args}")
@@ -313,16 +351,16 @@ def print_help_text():
 
 
 # This function overrides Jupyter's default logger so that we can output things based on our formatting preferences
-def setup_logging():
+def setup_logging(log_level=logging.INFO):
     warnings.filterwarnings("ignore")
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
     logger = logging.getLogger()
     formatter = logging.Formatter('%(message)s')
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(log_level)
     ch.setFormatter(formatter)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(log_level)
     logger.addHandler(ch)
 
 
@@ -344,7 +382,7 @@ def log_df(dataframe_label, dataframe, num_rows=10):
     logging.info(dataframe.head(num_rows).to_string())
 
 
-# # Main Entry Point: main()
+# ## Main Entry Point: main()
 # This function is the entry point of the script
 def main():
     setup_logging()
@@ -352,3 +390,14 @@ def main():
 
 
 main()
+
+# ## Conclusion
+# The below equation summarises the linear relationship between bike rental demand and the relevant predictor variables.
+# The selected predictors account for abput 83% of the variance in the data, as can be seen from the $R^2$ and the Adjusted $R^2$ statistics listed.
+
+
+# $\mathbf{rental\_bike\_demand} = 1632.382\times \mathbf{C} + 2019.478\times \mathbf{year} - 667.709\times \mathbf{holiday} + 415.293\times \mathbf{weekday} + 4298.769\times \mathbf{temperature} - 1082.769\times \mathbf{humidity} -1583.394\times \mathbf{windspeed} + 1025.765\times \mathbf{summer} + 647.160\times \mathbf{fall} + 1425.0694\times \mathbf{winter} -501.458\times \mathbf{WEATHER\_2} -2150.311\times \mathbf{WEATHER\_3}$
+# where:
+# **WEATHER_2** = "Mist + Cloudy, Mist + Broken clouds, Mist + Few clouds, Mist)"
+# **WEATHER_3** = "Light Snow, Light Rain + Thunderstorm + Scattered clouds, Light Rain + Scattered clouds"
+# and the other variables are appropriately scaled.
