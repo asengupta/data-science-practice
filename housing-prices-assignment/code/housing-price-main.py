@@ -27,18 +27,36 @@ import logging
 import sys
 import warnings
 
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import seaborn as sns
-from sklearn.preprocessing import PolynomialFeatures, MinMaxScaler
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
-from sklearn.metrics import mean_squared_error, r2_score
 
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
+
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
+
+
+class Columns:
+    ALLEY = "Alley"
+    POOL_QUALITY = "PoolQC"
+    MISC_FEATURE = "MiscFeature"
+    FENCE = "Fence"
+    BASEMENT_QUALITY = "BsmtQual"
+    BASEMENT_CONDITION = "BsmtCond"
+    BASEMENT_EXPOSURE = "BsmtExposure"
+    BASEMENT_FINISHED_AREA_RATING = "BsmtFinType1"
+    SECONDARY_BASEMENT_FINISHED_AREA_RATING = "BsmtFinType2"
+    ELECTRICAL = "Electrical"
+    GARAGE_QUALITY = "GarageQual"
+    GARAGE_TYPE = "GarageType"
+    GARAGE_CONDITION = "GarageCond"
+    GARAGE_FINISH = "GarageFinish"
+    GARAGE_YEAR_BUILT = "GarageYrBlt"
+    FIREPLACE_QUALITY = "FireplaceQu"
+    MASONRY_VENEER_TYPE = "MasVnrType"
+    MASONRY_VENEER_AREA = "MasVnrArea"
+    LOT_FRONTAGE = "LotFrontage"
+
 
 # # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
@@ -46,11 +64,58 @@ def analyse(raw_housing_prices):
     pass
 
 
+def log_mode(columns, housing_prices):
+    for column in columns:
+        logging.debug(f"Most Common {column}: {housing_prices[column].mode()[0]}")
+
+
+def log_median(columns, housing_prices):
+    for column in columns:
+        logging.debug(f"Most Common {column}: {housing_prices[column].median()}")
+
+
+def impute(categorical_columns, numerical_columns, housing_prices):
+    for categorical_column in categorical_columns:
+        housing_prices[categorical_column] = housing_prices[categorical_column].fillna(
+            housing_prices[categorical_column].mode()[0])
+    for categorical_column in numerical_columns:
+        housing_prices[categorical_column] = housing_prices[categorical_column].fillna(
+            housing_prices[categorical_column].median())
+
+    return housing_prices
+
+
+def impute_missing(raw_housing_prices):
+    NUMERICAL_COLUMNS_WITH_MISSING_VALUES = [Columns.MASONRY_VENEER_AREA, Columns.LOT_FRONTAGE]
+    CATEGORICAL_COLUMNS_WITH_MISSING_VALUES = [Columns.ALLEY, Columns.POOL_QUALITY, Columns.MISC_FEATURE, Columns.FENCE,
+                                               Columns.BASEMENT_QUALITY,
+                                               Columns.BASEMENT_CONDITION, Columns.BASEMENT_EXPOSURE,
+                                               Columns.BASEMENT_FINISHED_AREA_RATING,
+                                               Columns.SECONDARY_BASEMENT_FINISHED_AREA_RATING,
+                                               Columns.ELECTRICAL, Columns.GARAGE_QUALITY, Columns.GARAGE_TYPE,
+                                               Columns.GARAGE_CONDITION, Columns.GARAGE_FINISH,
+                                               Columns.GARAGE_YEAR_BUILT, Columns.FIREPLACE_QUALITY,
+                                               Columns.MASONRY_VENEER_TYPE]
+    log_mode(CATEGORICAL_COLUMNS_WITH_MISSING_VALUES,
+             raw_housing_prices)
+    log_median(NUMERICAL_COLUMNS_WITH_MISSING_VALUES, raw_housing_prices)
+    imputed_housing_prices = impute(CATEGORICAL_COLUMNS_WITH_MISSING_VALUES, NUMERICAL_COLUMNS_WITH_MISSING_VALUES,
+                                    raw_housing_prices)
+    return imputed_housing_prices
+
+
+def cleaned(raw_housing_prices):
+    raw_housing_prices = impute_missing(raw_housing_prices)
+    heading("Null Entries Statistics")
+    null_entry_statistics = raw_housing_prices.isnull().sum() / len(raw_housing_prices.index)
+    logging.info(null_entry_statistics.to_string())
+
+
 def study(raw_housing_prices):
     logging.debug(raw_housing_prices.head().to_string())
     logging.debug(raw_housing_prices.shape)
     logging.debug(raw_housing_prices.columns)
-
+    cleaned_housing_prices = cleaned(raw_housing_prices)
     analyse(raw_housing_prices)
 
 
