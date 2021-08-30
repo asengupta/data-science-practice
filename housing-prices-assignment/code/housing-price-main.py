@@ -115,8 +115,8 @@ def study(raw_housing_prices):
     logging.debug(raw_housing_prices.head().to_string())
     logging.debug(raw_housing_prices.shape)
     logging.debug(raw_housing_prices.columns)
-    cleaned_housing_prices = cleaned(raw_housing_prices)
-    analyse(raw_housing_prices)
+    imputed_housing_prices = cleaned(raw_housing_prices)
+    analyse(imputed_housing_prices)
 
 
 # # Utility Functions
