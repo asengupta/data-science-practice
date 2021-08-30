@@ -19,3 +19,5 @@ fileignoreconfig:
   checksum: 4c84dd4672548de8d9560156facac15fc2323ae23ed7a5228c873dfc346290b8
 - filename: bike-sharing-assignment/notebook/bike-sharing-assignment-notebook.ipynb
   checksum: 34c96846c53c99c09a46f22858bef199d0025a21111035f845af97de28f226f6
+- filename: bike-sharing-assignment/notebook/bike-sharing-assignment-notebook.ipynb
+  checksum: 893a7dafbd7428a4981c1c626e7909db2ac15fcbe29a46aa73fe2c25536db873
