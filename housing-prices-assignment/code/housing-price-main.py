@@ -1,14 +1,14 @@
 # # Running the file
 # If you wish to use your own copy of the data, use the following command:
 #
-# ``python lending-club-main.py [{-i |--input=}<loan-csv>] [-h | --help]``
+# ``python housing-price-main.py [{-i |--input=}<train-csv>] [-h | --help]``
 #
 # Here are some examples:
 #
-# ``python lending-club-main.py --input=loan.csv``
-# ``python lending-club-main.py -i loan.csv``
-# ``python lending-club-main.py``
-# ``python lending-club-main.py --help``
+# ``python housing-price-main.py --input=train.csv``
+# ``python housing-price-main.py -i train.csv``
+# ``python housing-price-main.py``
+# ``python housing-price-main.py --help``
 #
 # All of these arguments are optional. Providing no arguments makes the code read from the default location, i.e. ```./data```.
 #
@@ -19,7 +19,7 @@
 #
 # and running the following:
 #
-# ``p2j -o code/lending-club-main.py -t notebook/lending-club-main.ipynb``
+# ``p2j -o code/housing-price-main.py -t notebook/housing-price-main.ipynb``
 
 # # Library Imports
 import getopt
@@ -28,6 +28,15 @@ import sys
 import warnings
 
 import pandas as pd
+import seaborn as sns
+import statsmodels.api as sm
+from matplotlib import pyplot as plt
+from sklearn.feature_selection import RFE
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import r2_score
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
@@ -57,6 +66,34 @@ class Columns:
     MASONRY_VENEER_AREA = "MasVnrArea"
     LOT_FRONTAGE = "LotFrontage"
 
+# SEASON_CATEGORICAL_MAPPING = {1: SeasonConstants.SEASON_1,
+#                               2: SeasonConstants.SEASON_2,
+#                               3: SeasonConstants.SEASON_3,
+#                               4: SeasonConstants.SEASON_4}
+
+
+def with_dummies_builder(categorical_column, category_mapping):
+    return lambda dataset: with_dummy_variables(dataset, categorical_column, category_mapping)
+
+# This utility function pretty prints a dataframe for output
+def log_df(dataframe_label, dataframe, num_rows=10):
+    heading(dataframe_label)
+    logging.info(dataframe.head(num_rows).to_string())
+
+# This function actually performs the dummy variable setup
+def with_dummy_variables(dataset, categorical_column, category_mapping):
+    dummy_columns = pd.get_dummies(dataset.pop(categorical_column), drop_first=True)
+    log_df(f"{categorical_column} before Renaming of Dummy Variables", dummy_columns)
+    dummy_columns = dummy_columns.rename(columns=category_mapping)
+    log_df(f"{categorical_column} after Renaming of Dummy Variables", dummy_columns)
+    dataset_with_dummy_columns = pd.concat([dataset, dummy_columns], axis=1)
+    return dataset_with_dummy_columns
+
+def dummified(dataset):
+    # map_season = with_dummies_builder(Columns.SEASON, SEASON_CATEGORICAL_MAPPING)
+    # map_weather = with_dummies_builder(Columns.WEATHER, WEATHER_CATEGORICAL_MAPPING)
+    # return map_weather(map_season(with_day(dataset)))
+    return dataset
 
 # # Entry Point for CRISPR
 #  This function is the entry point for the entire CRISPR process. This is called by `main()`
@@ -105,10 +142,26 @@ def impute_missing(raw_housing_prices):
 
 
 def cleaned(raw_housing_prices):
-    raw_housing_prices = impute_missing(raw_housing_prices)
-    heading("Null Entries Statistics")
+    heading("Null Entries BEFORE")
     null_entry_statistics = raw_housing_prices.isnull().sum() / len(raw_housing_prices.index)
     logging.info(null_entry_statistics.to_string())
+    raw_housing_prices = impute_missing(raw_housing_prices)
+    heading("Null Entries Statistics AFTER")
+    null_entry_statistics = raw_housing_prices.isnull().sum() / len(raw_housing_prices.index)
+    logging.info(null_entry_statistics.to_string())
+    return raw_housing_prices
+
+
+def as_ranked_map(ordered):
+    dictionary = {}
+    for idx, val in enumerate(ordered):
+        dictionary[val]=idx + 1
+    return dictionary
+
+def ranked(raw_housing_prices):
+    ranked_electricity = as_ranked_map(["ELO", "NoSeWa", "NoSewr", "AllPub"])
+    print(ranked_electricity)
+    # raw_housing_prices["Utilities"].map({"ELO": 1, })
 
 
 def study(raw_housing_prices):
@@ -116,7 +169,18 @@ def study(raw_housing_prices):
     logging.debug(raw_housing_prices.shape)
     logging.debug(raw_housing_prices.columns)
     imputed_housing_prices = cleaned(raw_housing_prices)
+    ranked(raw_housing_prices)
+    # explore(imputed_housing_prices)
     analyse(imputed_housing_prices)
+
+def explore(dataset):
+    plt.figure()
+    # Please note that generating the pairplot takes a little while due to the number of variables to plot. Please be patient while it does this.
+    sns.pairplot(data=dataset)
+    plt.show()
+    plt.figure()
+    sns.heatmap(dataset.corr(), cmap="YlGnBu", annot=True, annot_kws={"size": 5})
+    plt.show()
 
 
 # # Utility Functions
