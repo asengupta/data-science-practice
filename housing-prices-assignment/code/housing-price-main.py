@@ -32,17 +32,22 @@ import pandas as pd
 import seaborn as sns
 import statsmodels.api as sm
 from matplotlib import pyplot as plt
-from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.linear_model import Lasso, Ridge
 from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
-from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
+from sklearn.preprocessing import MinMaxScaler
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
 VALUE_FIELD = "value"
 VALUES_FIELD = "values"
+
+REGULARIZATION_COEFFICIENT = "REGULARIZATION_COEFFICIENT"
+REGULARIZED_MODEL = "REGULARIZED_MODEL"
+R2_SCORE = "R2_SCORE"
+ROOT_MEAN_SQUARE_ERROR = "ROOT_MEAN_SQUARE_ERROR"
 
 METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling involved in the sale.',
              'values': [{'value': '20', 'meaning': '1-STORY 1946 & NEWER ALL STYLES'},
@@ -678,37 +683,58 @@ def study(raw_housing_prices):
 
     housing_training, housing_testing = split_train_test(housing_prices_master)
     housing_training, scaler = scale(housing_training)
+    housing_x_training, housing_y_training = prepare_training(housing_training)
+    housing_x_testing, housing_y_testing = prepare_testing(housing_testing, scaler)
+
+    search_regularization_hyperparameters(Lasso, housing_x_testing, housing_x_training, housing_y_testing,
+                                          housing_y_training,
+                                          scaler)
+    search_regularization_hyperparameters(Ridge, housing_x_testing, housing_x_training, housing_y_testing,
+                                          housing_y_training,
+                                          scaler)
+
+
+def search_regularization_hyperparameters(RegularizationMethod, housing_x_testing, housing_x_training,
+                                          housing_y_testing, housing_y_training,
+                                          scaler):
+    results = []
+    ridge_coefficient_space = np.linspace(0, 100, 50)
+    for regularization_coefficient in ridge_coefficient_space:
+        rmse, r2, regularized_model = train_regularized_model(housing_x_training, housing_y_training,
+                                                              RegularizationMethod,
+                                                              regularization_coefficient)
+        results.append(
+            {REGULARIZATION_COEFFICIENT: regularization_coefficient, ROOT_MEAN_SQUARE_ERROR: rmse, R2_SCORE: r2,
+             REGULARIZED_MODEL: regularized_model})
+    plt.figure()
+    sns.scatterplot(ridge_coefficient_space, list(map(lambda r: r[R2_SCORE], results)))
+    plt.show()
+    best_model = model_near_regularization_coefficient(40, results)
+    predict_on_test_set(best_model[REGULARIZED_MODEL], housing_x_testing, housing_y_testing)
+
+
+def prepare_training(housing_training):
     housing_y_training = housing_training.pop(Columns.SALE_PRICE)
     housing_x_training = housing_training
     housing_x_training = sm.add_constant(housing_x_training, has_constant='add')
-    # ridge_coefficient_space = np.linspace(0,100,50)
-    ridge_coefficient_space = [40]
-    print(ridge_coefficient_space)
-    rmses = []
-    r2s = []
-    lms = []
-    for c in ridge_coefficient_space:
-        # rmse, r2, lm = train_regularized_model(housing_x_training, housing_y_training, Lasso, c)
-        rmse, r2, lm = train_regularized_model(housing_x_training, housing_y_training, Ridge, c)
-        rmses.append(rmse)
-        r2s.append(r2)
-        lms.append(lm)
+    return housing_x_training, housing_y_training
 
-    plt.figure()
-    sns.scatterplot(ridge_coefficient_space, rmses)
-    plt.show()
-    plt.figure()
-    sns.scatterplot(ridge_coefficient_space, r2s)
-    plt.show()
 
-    predict_on_test_set(scaler, lms[0], housing_testing)
+def prepare_testing(housing_testing, scaler):
+    housing_testing = sm.add_constant(housing_testing, has_constant='add')
+    housing_y_testing = housing_testing.pop(Columns.SALE_PRICE)
+    housing_x_testing = housing_testing
+    housing_x_testing[COLUMNS_TO_SCALE] = scaler.transform(housing_x_testing[COLUMNS_TO_SCALE])
+    return housing_x_testing, housing_y_testing
 
-def predict_on_test_set(scaler, lm, testing):
-    testing = sm.add_constant(testing, has_constant='add')
-    y_testing = testing.pop(Columns.SALE_PRICE)
-    x_testing = testing
-    x_testing[COLUMNS_TO_SCALE] = scaler.transform(x_testing[COLUMNS_TO_SCALE])
-    predicted_y = lm.predict(x_testing)
+
+def model_near_regularization_coefficient(approximate_regularization_coefficient, all_results):
+    return [x for x in all_results if abs(x[REGULARIZATION_COEFFICIENT] - approximate_regularization_coefficient) < 5][
+        0]
+
+
+def predict_on_test_set(regularized_model, x_testing, y_testing):
+    predicted_y = regularized_model.predict(x_testing)
 
     fig = plt.figure()
     plt.scatter(y_testing, predicted_y)
@@ -719,11 +745,13 @@ def predict_on_test_set(scaler, lm, testing):
 
     return predicted_y, y_testing
 
+
 # explore(imputed_housing_prices)
 # analyse(imputed_housing_prices)
 
-def log_statistics(lr, y_training, predicted_y):
+def log_statistics(regularization_coefficient, lr, y_training, predicted_y):
     r2 = r2_score(y_training, predicted_y)
+    logging.info(f"Regularization Coefficient: {regularization_coefficient}")
     logging.info(f"R2 Score: {r2}")
     logging.info(f"Regression Parameters: {lr.coef_}")
     rss = np.sum(np.square(y_training - predicted_y))
@@ -732,11 +760,12 @@ def log_statistics(lr, y_training, predicted_y):
     logging.info(f"Root Mean Squared Error: {rmse}")
     return rmse, r2
 
-def train_regularized_model(x_training, y_training, RegularizationMethod, ridge_coefficient):
-    regularized_model = RegularizationMethod(alpha = ridge_coefficient)
+
+def train_regularized_model(x_training, y_training, RegularizationMethod, regularization_coefficient):
+    regularized_model = RegularizationMethod(alpha=regularization_coefficient)
     regularized_model.fit(x_training, y_training)
     predicted_y = regularized_model.predict(x_training)
-    rmse, r2 = log_statistics(regularized_model, y_training, predicted_y)
+    rmse, r2 = log_statistics(regularization_coefficient, regularized_model, y_training, predicted_y)
     return rmse, r2, regularized_model
 
 
