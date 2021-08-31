@@ -30,11 +30,14 @@ import warnings
 import numpy as np
 import pandas as pd
 import seaborn as sns
+import statsmodels.api as sm
 from matplotlib import pyplot as plt
+from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, PolynomialFeatures
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
@@ -368,6 +371,7 @@ METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling i
 
 
 class Columns:
+    SALE_PRICE = "SalePrice"
     MISC_FEATURE_VALUE = "MiscVal"
     POOL_AREA = "PoolArea"
     SCREEN_PORCH_AREA = "ScreenPorch"
@@ -661,7 +665,7 @@ def study(raw_housing_prices):
     logging.debug(raw_housing_prices.head().to_string())
     logging.debug(raw_housing_prices.shape)
     logging.debug(raw_housing_prices.columns)
-    imputed_housing_prices = imputed(raw_housing_prices)
+    raw_housing_prices = imputed(raw_housing_prices)
     verify_data_quality(raw_housing_prices, METADATA)
     raw_housing_prices = fix_data_quality(raw_housing_prices)
     verify_data_quality(raw_housing_prices, METADATA)
@@ -674,10 +678,66 @@ def study(raw_housing_prices):
 
     housing_training, housing_testing = split_train_test(housing_prices_master)
     housing_training, scaler = scale(housing_training)
+    housing_y_training = housing_training.pop(Columns.SALE_PRICE)
+    housing_x_training = housing_training
+    housing_x_training = sm.add_constant(housing_x_training, has_constant='add')
+    # ridge_coefficient_space = np.linspace(0,100,50)
+    ridge_coefficient_space = [40]
+    print(ridge_coefficient_space)
+    rmses = []
+    r2s = []
+    lms = []
+    for c in ridge_coefficient_space:
+        # rmse, r2, lm = train_regularized_model(housing_x_training, housing_y_training, Lasso, c)
+        rmse, r2, lm = train_regularized_model(housing_x_training, housing_y_training, Ridge, c)
+        rmses.append(rmse)
+        r2s.append(r2)
+        lms.append(lm)
 
+    plt.figure()
+    sns.scatterplot(ridge_coefficient_space, rmses)
+    plt.show()
+    plt.figure()
+    sns.scatterplot(ridge_coefficient_space, r2s)
+    plt.show()
+
+    predict_on_test_set(scaler, lms[0], housing_testing)
+
+def predict_on_test_set(scaler, lm, testing):
+    testing = sm.add_constant(testing, has_constant='add')
+    y_testing = testing.pop(Columns.SALE_PRICE)
+    x_testing = testing
+    x_testing[COLUMNS_TO_SCALE] = scaler.transform(x_testing[COLUMNS_TO_SCALE])
+    predicted_y = lm.predict(x_testing)
+
+    fig = plt.figure()
+    plt.scatter(y_testing, predicted_y)
+    fig.suptitle('y_test vs y_pred', fontsize=20)  # Plot heading
+    plt.xlabel('y_test', fontsize=18)  # X-label
+    plt.ylabel('y_pred', fontsize=16)  # Y-label
+    plt.show()
+
+    return predicted_y, y_testing
 
 # explore(imputed_housing_prices)
 # analyse(imputed_housing_prices)
+
+def log_statistics(lr, y_training, predicted_y):
+    r2 = r2_score(y_training, predicted_y)
+    logging.info(f"R2 Score: {r2}")
+    logging.info(f"Regression Parameters: {lr.coef_}")
+    rss = np.sum(np.square(y_training - predicted_y))
+    logging.info(f"Residual Sum of Squares: {rss}")
+    rmse = mean_squared_error(y_training, predicted_y) ** 0.5
+    logging.info(f"Root Mean Squared Error: {rmse}")
+    return rmse, r2
+
+def train_regularized_model(x_training, y_training, RegularizationMethod, ridge_coefficient):
+    regularized_model = RegularizationMethod(alpha = ridge_coefficient)
+    regularized_model.fit(x_training, y_training)
+    predicted_y = regularized_model.predict(x_training)
+    rmse, r2 = log_statistics(regularized_model, y_training, predicted_y)
+    return rmse, r2, regularized_model
 
 
 def explore(dataset):
