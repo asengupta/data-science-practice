@@ -37,6 +37,8 @@ from matplotlib import pyplot as plt
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
+VALUE_FIELD = "value"
+VALUES_FIELD = "values"
 
 METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling involved in the sale.',
              'values': [{'value': '20', 'meaning': '1-STORY 1946 & NEWER ALL STYLES'},
@@ -365,10 +367,26 @@ METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling i
 
 
 class Columns:
+    SALE_CONDITION = "SaleCondition"
+    SALE_TYPE = "SaleType"
+    CENTRAL_AIR_CONDITIONING = "CentralAir"
+    HEATING_TYPE = "Heating"
+    FOUNDATION_TYPE = "Foundation"
+    ROOF_MATERIAL = "RoofMatl"
+    ROOF_STYLE = "RoofStyle"
+    HOUSE_STYLE = "HouseStyle"
+    CONDITION_1 = "Condition1"
+    CONDITION_2 = "Condition2"
+    LOT_CONFIG = "LotConfig"
+    LAND_CONTOUR = "LandContour"
+    DWELLING_TYPE = "MSSubClass"
     DRIVE_CONDITION = "PavedDrive"
     HOME_FUNCTIONALITY = "Functional"
     KITCHEN_QUALITY = "KitchenQual"
     ZONING_TYPE = "MSZoning"
+    ROAD_ACCESS_TYPE = "Street"
+    ALLEY_ACCESS_TYPE = "Alley"
+    LOT_SHAPE = "LotShape"
     NEIGHBORHOOD = "Neighborhood"
     BUILDING_TYPE = "BldgType"
     ALLEY = "Alley"
@@ -390,8 +408,8 @@ class Columns:
     MASONRY_VENEER_TYPE = "MasVnrType"
     MASONRY_VENEER_AREA = "MasVnrArea"
     LOT_FRONTAGE = "LotFrontage"
-    EXTERIOR_FIRST = "Exterior1st"
-    EXTERIOR_SECOND = "Exterior2nd"
+    EXTERIOR_COVERING_FIRST = "Exterior1st"
+    EXTERIOR_COVERING_SECOND = "Exterior2nd"
     UTILITIES = "Utilities"
     LAND_SLOPE = "LandSlope"
     EXTERNAL_QUALITY = "ExterQual"
@@ -399,8 +417,8 @@ class Columns:
     HEATING_QUALITY_AND_CONDITION = "HeatingQC"
 
 
-def with_dummies_builder(categorical_column, category_mapping):
-    return lambda dataset: with_dummy_variables(dataset, categorical_column, category_mapping)
+def with_dummies_builder(categorical_column, metadata):
+    return lambda dataset: with_dummy_variables(categorical_column, dataset, metadata)
 
 
 # This utility function pretty prints a dataframe for output
@@ -410,20 +428,53 @@ def log_df(dataframe_label, dataframe, num_rows=10):
 
 
 # This function actually performs the dummy variable setup
-def with_dummy_variables(dataset, categorical_column, category_mapping):
-    dummy_columns = pd.get_dummies(dataset.pop(categorical_column), drop_first=True)
-    log_df(f"{categorical_column} before Renaming of Dummy Variables", dummy_columns)
-    dummy_columns = dummy_columns.rename(columns=category_mapping)
+def with_dummy_variables(categorical_column, dataset, metadata):
+    metadata_entry = [x for x in metadata if x["name"] == categorical_column][0]
+    raw_entries = list(map(lambda v: v[VALUE_FIELD], metadata_entry[VALUES_FIELD]))
+    dummy_columns = pd.get_dummies(dataset.pop(categorical_column), prefix=categorical_column, drop_first=True)
     log_df(f"{categorical_column} after Renaming of Dummy Variables", dummy_columns)
     dataset_with_dummy_columns = pd.concat([dataset, dummy_columns], axis=1)
+    log_df(f"All Columns after Renaming of Dummy Variables of {categorical_column}", dataset_with_dummy_columns)
     return dataset_with_dummy_columns
 
 
-def dummified(dataset):
-    # map_season = with_dummies_builder(Columns.SEASON, SEASON_CATEGORICAL_MAPPING)
-    # map_weather = with_dummies_builder(Columns.WEATHER, WEATHER_CATEGORICAL_MAPPING)
-    # return map_weather(map_season(with_day(dataset)))
-    return dataset
+def convert_to_dummies(dataset, metadata):
+    map_dwelling_type = with_dummies_builder(Columns.DWELLING_TYPE, metadata)
+    map_zoning_type = with_dummies_builder(Columns.ZONING_TYPE, metadata)
+    map_road_access_type = with_dummies_builder(Columns.ROAD_ACCESS_TYPE, metadata)
+    map_alley_access_type = with_dummies_builder(Columns.ALLEY_ACCESS_TYPE, metadata)
+    map_lot_shape = with_dummies_builder(Columns.LOT_SHAPE, metadata)
+    map_land_contour = with_dummies_builder(Columns.LAND_CONTOUR, metadata)
+    map_lot_config = with_dummies_builder(Columns.LOT_CONFIG, metadata)
+    map_neighborhood = with_dummies_builder(Columns.NEIGHBORHOOD, metadata)
+    map_condition_1 = with_dummies_builder(Columns.CONDITION_1, metadata)
+    map_condition_2 = with_dummies_builder(Columns.CONDITION_2, metadata)
+    map_building_type = with_dummies_builder(Columns.BUILDING_TYPE, metadata)
+    map_house_style = with_dummies_builder(Columns.HOUSE_STYLE, metadata)
+    map_roof_style = with_dummies_builder(Columns.ROOF_STYLE, metadata)
+    map_roof_material = with_dummies_builder(Columns.ROOF_MATERIAL, metadata)
+    map_exterior_covering_1 = with_dummies_builder(Columns.EXTERIOR_COVERING_FIRST, metadata)
+    map_exterior_covering_2 = with_dummies_builder(Columns.EXTERIOR_COVERING_SECOND, metadata)
+    map_masonry_foundation_type = with_dummies_builder(Columns.FOUNDATION_TYPE, metadata)
+    map_heating_type = with_dummies_builder(Columns.HEATING_TYPE, metadata)
+    map_central_air_conditioning = with_dummies_builder(Columns.CENTRAL_AIR_CONDITIONING, metadata)
+    map_electrical = with_dummies_builder(Columns.ELECTRICAL, metadata)
+    map_garage_type = with_dummies_builder(Columns.GARAGE_TYPE, metadata)
+    map_misc_feature = with_dummies_builder(Columns.MISC_FEATURE, metadata)
+    map_sale_type = with_dummies_builder(Columns.SALE_TYPE, metadata)
+    map_sale_condition = with_dummies_builder(Columns.SALE_CONDITION, metadata)
+
+    return map_dwelling_type(
+        map_zoning_type(map_road_access_type(map_alley_access_type(map_lot_shape(map_land_contour(map_lot_config(
+            map_neighborhood(
+                map_condition_1(map_condition_2(map_building_type(map_house_style(map_roof_style(map_roof_material(
+                    map_exterior_covering_1(map_exterior_covering_2(
+                        map_masonry_foundation_type(map_heating_type(map_central_air_conditioning(
+                            map_electrical(
+                                map_garage_type(map_misc_feature(map_sale_type(map_sale_condition(dataset)))))
+                        )))))
+                )))))))
+        )))))))
 
 
 # # Entry Point for CRISPR
@@ -488,31 +539,18 @@ def imputed(raw_housing_prices):
     null_entry_statistics = raw_housing_prices.isnull().sum() / len(raw_housing_prices.index)
     logging.info(null_entry_statistics.to_string())
 
-    raw_housing_prices = replace(Columns.EXTERIOR_FIRST, "Wd Sdng", "WdSdng", raw_housing_prices)
-    raw_housing_prices = replace(Columns.EXTERIOR_SECOND, "Wd Sdng", "WdSdng", raw_housing_prices)
+    raw_housing_prices = replace(Columns.EXTERIOR_COVERING_FIRST, "Wd Sdng", "WdSdng", raw_housing_prices)
+    raw_housing_prices = replace(Columns.EXTERIOR_COVERING_SECOND, "Wd Sdng", "WdSdng", raw_housing_prices)
 
     return raw_housing_prices
-
-
-def as_ranked_map(ordered):
-    dictionary = {}
-    for idx, val in enumerate(ordered):
-        dictionary[val] = idx + 1
-    return dictionary
-
-
-def ranked(raw_housing_prices):
-    ranked_electricity = as_ranked_map(["ELO", "NoSeWa", "NoSewr", "AllPub"])
-    print(ranked_electricity)
-    # raw_housing_prices["Utilities"].map({"ELO": 1, })
 
 
 def verify_data_quality(dataset, metadata):
     heading("DATA DISCREPANCIES")
     for feature in metadata:
         feature_name = feature["name"]
-        feature_values = set(map(lambda v: v["value"], feature["values"]))
-        if (len(feature["values"]) == 0):
+        feature_values = set(map(lambda v: v[VALUE_FIELD], feature[VALUES_FIELD]))
+        if (len(feature[VALUES_FIELD]) == 0):
             continue
         actual_values = set(dataset[feature_name].unique())
         discrepancies = actual_values.difference(feature_values)
@@ -527,9 +565,9 @@ def fix_data_quality(dataset):
     dataset = replace(Columns.BUILDING_TYPE, "2fmCon", "2FmCon", dataset)
     dataset = replace(Columns.BUILDING_TYPE, "Duplex", "Duplx", dataset)
     dataset = replace(Columns.BUILDING_TYPE, "Twnhs", "TwnhsE", dataset)
-    dataset = replace(Columns.EXTERIOR_SECOND, "Wd Shng", "WdShing", dataset)
-    dataset = replace(Columns.EXTERIOR_SECOND, "CmentBd", "CemntBd", dataset)
-    dataset = replace(Columns.EXTERIOR_SECOND, "Brk Cmn", "BrkComm", dataset)
+    dataset = replace(Columns.EXTERIOR_COVERING_SECOND, "Wd Shng", "WdShing", dataset)
+    dataset = replace(Columns.EXTERIOR_COVERING_SECOND, "CmentBd", "CemntBd", dataset)
+    dataset = replace(Columns.EXTERIOR_COVERING_SECOND, "Brk Cmn", "BrkComm", dataset)
 
     return dataset
 
@@ -537,7 +575,7 @@ def fix_data_quality(dataset):
 def mark_as_ordered(column, dataset, metadata, descending=False):
     metadata_entry = [x for x in metadata if x["name"] == column][0]
     print(metadata_entry)
-    raw_entries = list(map(lambda v: v["value"], metadata_entry["values"]))
+    raw_entries = list(map(lambda v: v[VALUE_FIELD], metadata_entry[VALUES_FIELD]))
     raw_ordering = list(range(1, len(raw_entries) + 1))
     correct_ordering = raw_ordering if not descending else raw_ordering[-1::-1]
     mapping = {raw_entries[i]: correct_ordering[i] for i in range(len(raw_ordering))}
@@ -549,26 +587,26 @@ def mark_as_ordered(column, dataset, metadata, descending=False):
 
 
 def convert_to_ordered(dataset, metadata):
-    dataset = mark_as_ordered(Columns.UTILITIES, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.LAND_SLOPE, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.UTILITIES, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.EXTERNAL_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.EXTERNAL_CONDITION, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.BASEMENT_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.BASEMENT_CONDITION, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.BASEMENT_EXPOSURE, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.BASEMENT_FINISHED_AREA_RATING, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.SECONDARY_BASEMENT_FINISHED_AREA_RATING, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.HEATING_QUALITY_AND_CONDITION, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.KITCHEN_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.HOME_FUNCTIONALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.FIREPLACE_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.GARAGE_FINISH, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.GARAGE_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.GARAGE_CONDITION, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.DRIVE_CONDITION, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.POOL_QUALITY, dataset, METADATA, descending=True)
-    dataset = mark_as_ordered(Columns.FENCE_QUALITY, dataset, METADATA, descending=True)
+    dataset = mark_as_ordered(Columns.UTILITIES, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.LAND_SLOPE, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.UTILITIES, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.EXTERNAL_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.EXTERNAL_CONDITION, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.BASEMENT_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.BASEMENT_CONDITION, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.BASEMENT_EXPOSURE, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.BASEMENT_FINISHED_AREA_RATING, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.SECONDARY_BASEMENT_FINISHED_AREA_RATING, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.HEATING_QUALITY_AND_CONDITION, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.KITCHEN_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.HOME_FUNCTIONALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.FIREPLACE_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.GARAGE_FINISH, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.GARAGE_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.GARAGE_CONDITION, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.DRIVE_CONDITION, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.POOL_QUALITY, dataset, metadata, descending=True)
+    dataset = mark_as_ordered(Columns.FENCE_QUALITY, dataset, metadata, descending=True)
 
     return dataset
 
@@ -578,11 +616,14 @@ def study(raw_housing_prices):
     logging.debug(raw_housing_prices.shape)
     logging.debug(raw_housing_prices.columns)
     imputed_housing_prices = imputed(raw_housing_prices)
-    # ranked(raw_housing_prices)
     verify_data_quality(raw_housing_prices, METADATA)
     raw_housing_prices = fix_data_quality(raw_housing_prices)
     verify_data_quality(raw_housing_prices, METADATA)
-    convert_to_ordered(raw_housing_prices, METADATA)
+    raw_housing_prices = convert_to_ordered(raw_housing_prices, METADATA)
+    raw_housing_prices = convert_to_dummies(raw_housing_prices, METADATA)
+    heading("ALL COLUMNS")
+    for column in raw_housing_prices.columns:
+        logging.info(column)
     # explore(imputed_housing_prices)
     # analyse(imputed_housing_prices)
 
