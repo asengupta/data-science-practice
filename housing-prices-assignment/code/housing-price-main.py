@@ -31,9 +31,10 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
-
+from sklearn.model_selection import train_test_split
 # # Constants
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
+from sklearn.preprocessing import MinMaxScaler
 
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
@@ -367,6 +368,23 @@ METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling i
 
 
 class Columns:
+    MISC_FEATURE_VALUE = "MiscVal"
+    POOL_AREA = "PoolArea"
+    SCREEN_PORCH_AREA = "ScreenPorch"
+    THREE_SEASON_PORCH_AREA = "3SsnPorch"
+    ENCLOSED_PORCH_AREA = "EnclosedPorch"
+    OPEN_PORCH_AREA = "OpenPorchSF"
+    WOOD_DECK_AREA = "WoodDeckSF"
+    GARAGE_AREA = "GarageArea"
+    GROUND_LIVING_AREA = "GrLivArea"
+    LOW_QUALITY_FINISHED_AREA = "LowQualFinSF"
+    FIRST_FLOOR_AREA = "1stFlrSF"
+    SECOND_FLOOR_AREA = "2ndFlrSF"
+    BASEMENT_TOTAL_SIZE = "TotalBsmtSF"
+    BASEMENT_UNFINISHED_AREA_SIZE = "BsmtUnfSF"
+    BASEMENT_FINISHED_AREA_1_SIZE = "BsmtFinSF1"
+    BASEMENT_FINISHED_AREA_2_SIZE = "BsmtFinSF2"
+    LOT_AREA = "LotArea"
     SALE_CONDITION = "SaleCondition"
     SALE_TYPE = "SaleType"
     CENTRAL_AIR_CONDITIONING = "CentralAir"
@@ -417,6 +435,17 @@ class Columns:
     HEATING_QUALITY_AND_CONDITION = "HeatingQC"
 
 
+COLUMNS_TO_SCALE = [Columns.LOT_FRONTAGE, Columns.LOT_AREA,
+                    Columns.MASONRY_VENEER_AREA, Columns.BASEMENT_FINISHED_AREA_1_SIZE,
+                    Columns.BASEMENT_FINISHED_AREA_2_SIZE,
+                    Columns.BASEMENT_UNFINISHED_AREA_SIZE, Columns.BASEMENT_TOTAL_SIZE,
+                    Columns.FIRST_FLOOR_AREA, Columns.SECOND_FLOOR_AREA,
+                    Columns.LOW_QUALITY_FINISHED_AREA, Columns.GROUND_LIVING_AREA, Columns.GARAGE_AREA,
+                    Columns.WOOD_DECK_AREA, Columns.OPEN_PORCH_AREA, Columns.ENCLOSED_PORCH_AREA,
+                    Columns.THREE_SEASON_PORCH_AREA,
+                    Columns.SCREEN_PORCH_AREA, Columns.POOL_AREA, Columns.MISC_FEATURE_VALUE]
+
+
 def with_dummies_builder(categorical_column, metadata):
     return lambda dataset: with_dummy_variables(categorical_column, dataset, metadata)
 
@@ -463,6 +492,7 @@ def convert_to_dummies(dataset, metadata):
     map_misc_feature = with_dummies_builder(Columns.MISC_FEATURE, metadata)
     map_sale_type = with_dummies_builder(Columns.SALE_TYPE, metadata)
     map_sale_condition = with_dummies_builder(Columns.SALE_CONDITION, metadata)
+    map_masonry_veneer_type = with_dummies_builder(Columns.MASONRY_VENEER_TYPE, metadata)
 
     return map_dwelling_type(
         map_zoning_type(map_road_access_type(map_alley_access_type(map_lot_shape(map_land_contour(map_lot_config(
@@ -471,7 +501,8 @@ def convert_to_dummies(dataset, metadata):
                     map_exterior_covering_1(map_exterior_covering_2(
                         map_masonry_foundation_type(map_heating_type(map_central_air_conditioning(
                             map_electrical(
-                                map_garage_type(map_misc_feature(map_sale_type(map_sale_condition(dataset)))))
+                                map_garage_type(map_misc_feature(
+                                    map_sale_type(map_sale_condition(map_masonry_veneer_type(dataset))))))
                         )))))
                 )))))))
         )))))))
@@ -589,7 +620,6 @@ def mark_as_ordered(column, dataset, metadata, descending=False):
 def convert_to_ordered(dataset, metadata):
     dataset = mark_as_ordered(Columns.UTILITIES, dataset, metadata, descending=True)
     dataset = mark_as_ordered(Columns.LAND_SLOPE, dataset, metadata, descending=True)
-    dataset = mark_as_ordered(Columns.UTILITIES, dataset, metadata, descending=True)
     dataset = mark_as_ordered(Columns.EXTERNAL_QUALITY, dataset, metadata, descending=True)
     dataset = mark_as_ordered(Columns.EXTERNAL_CONDITION, dataset, metadata, descending=True)
     dataset = mark_as_ordered(Columns.BASEMENT_QUALITY, dataset, metadata, descending=True)
@@ -611,6 +641,22 @@ def convert_to_ordered(dataset, metadata):
     return dataset
 
 
+def scale(training_dataset):
+    training_data_scaler = MinMaxScaler()
+    training_dataset[COLUMNS_TO_SCALE] = training_data_scaler.fit_transform(training_dataset[COLUMNS_TO_SCALE])
+    log_df("Training Dataset after Scaling", training_dataset)
+    return training_dataset, training_data_scaler
+
+
+def split_train_test(dataset):
+    training, testing = train_test_split(dataset, train_size=0.7, test_size=0.3,
+                                         random_state=100)
+    heading("TEST / TRAIN SPLIT")
+    logging.info(f"Training set has {len(training)} vectors")
+    logging.info(f"Test set has {len(testing)} vectors")
+    return training, testing
+
+
 def study(raw_housing_prices):
     logging.debug(raw_housing_prices.head().to_string())
     logging.debug(raw_housing_prices.shape)
@@ -621,11 +667,17 @@ def study(raw_housing_prices):
     verify_data_quality(raw_housing_prices, METADATA)
     raw_housing_prices = convert_to_ordered(raw_housing_prices, METADATA)
     raw_housing_prices = convert_to_dummies(raw_housing_prices, METADATA)
+    housing_prices_master = raw_housing_prices
     heading("ALL COLUMNS")
     for column in raw_housing_prices.columns:
         logging.info(column)
-    # explore(imputed_housing_prices)
-    # analyse(imputed_housing_prices)
+
+    housing_training, housing_testing = split_train_test(housing_prices_master)
+    housing_training, scaler = scale(housing_training)
+
+
+# explore(imputed_housing_prices)
+# analyse(imputed_housing_prices)
 
 
 def explore(dataset):
