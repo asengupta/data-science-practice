@@ -39,6 +39,9 @@ from sklearn.model_selection import train_test_split
 # A bunch of constants are set up so that strings don't clutter the source everywhere.
 from sklearn.preprocessing import MinMaxScaler
 
+# # Constants
+## Setting up Constants so that strings are not scattered everywhere
+
 DEFAULT_DATASET_LOCATION = "../data"
 DEFAULT_HOUSING_PRICE_CSV_FILENAME = "train.csv"
 VALUE_FIELD = "value"
@@ -48,6 +51,11 @@ REGULARIZATION_COEFFICIENT = "REGULARIZATION_COEFFICIENT"
 REGULARIZED_MODEL = "REGULARIZED_MODEL"
 R2_SCORE = "R2_SCORE"
 ROOT_MEAN_SQUARE_ERROR = "ROOT_MEAN_SQUARE_ERROR"
+
+# # Metadata
+# This data structure is set up by parsing the data_description.txt, so as to automatically get information
+# that can be used to validate data, automatically transform data into dummy and/or ordinal variables, without
+# writing them all out manually.
 
 METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling involved in the sale.',
              'values': [{'value': '20', 'meaning': '1-STORY 1946 & NEWER ALL STYLES'},
@@ -374,8 +382,9 @@ METADATA = [{'name': 'MSSubClass', 'meaning': 'Identifies the type of dwelling i
                         {'value': 'Family', 'meaning': 'Sale between family members'}, {'value': 'Partial',
                                                                                         'meaning': 'Home was not completed when last assessed (associated with New Homes)'}]}]
 
-
+# # Column Constants
 class Columns:
+    ID = "Id"
     SALE_PRICE = "SalePrice"
     MISC_FEATURE_VALUE = "MiscVal"
     POOL_AREA = "PoolArea"
@@ -465,7 +474,7 @@ def log_df(dataframe_label, dataframe, num_rows=10):
     logging.info(dataframe.head(num_rows).to_string())
 
 
-# This function actually performs the dummy variable setup
+# This function actually performs conversion of categorical variables to dummy variables using the parsed metadata
 def with_dummy_variables(categorical_column, dataset, metadata):
     metadata_entry = [x for x in metadata if x["name"] == categorical_column][0]
     raw_entries = list(map(lambda v: v[VALUE_FIELD], metadata_entry[VALUES_FIELD]))
@@ -475,7 +484,7 @@ def with_dummy_variables(categorical_column, dataset, metadata):
     log_df(f"All Columns after Renaming of Dummy Variables of {categorical_column}", dataset_with_dummy_columns)
     return dataset_with_dummy_columns
 
-
+# This function decides which columns need to be converted into dummy variables.
 def convert_to_dummies(dataset, metadata):
     map_dwelling_type = with_dummies_builder(Columns.DWELLING_TYPE, metadata)
     map_zoning_type = with_dummies_builder(Columns.ZONING_TYPE, metadata)
@@ -517,12 +526,6 @@ def convert_to_dummies(dataset, metadata):
         )))))))
 
 
-# # Entry Point for CRISPR
-#  This function is the entry point for the entire CRISPR process. This is called by `main()`
-def analyse(raw_housing_prices):
-    pass
-
-
 def log_mode(columns, housing_prices):
     for column in columns:
         logging.debug(f"Most Common {column}: {housing_prices[column].mode()[0]}")
@@ -532,7 +535,7 @@ def log_median(columns, housing_prices):
     for column in columns:
         logging.debug(f"Most Common {column}: {housing_prices[column].median()}")
 
-
+# This function imputes any missing data by using the mode for categorical variables
 def impute(categorical_columns, numerical_columns, housing_prices):
     for categorical_column in categorical_columns:
         housing_prices[categorical_column] = housing_prices[categorical_column].fillna(
@@ -584,6 +587,7 @@ def imputed(raw_housing_prices):
 
     return raw_housing_prices
 
+# This function verifies the data quality of the dataset by comparing it with the parsed metadata
 
 def verify_data_quality(dataset, metadata):
     heading("DATA DISCREPANCIES")
@@ -599,7 +603,9 @@ def verify_data_quality(dataset, metadata):
         logging.info(f"Discrepancies for feature [{feature_name}]: {discrepancies}")
 
 
+# This function fixes the data quality issues based on the expectations in the parsed metadata
 def fix_data_quality(dataset):
+    dataset = dataset.drop(Columns.ID, axis = 1)
     dataset = replace(Columns.ZONING_TYPE, "C (all)", "C", dataset)
     dataset = replace(Columns.NEIGHBORHOOD, "NAmes", "Names", dataset)
     dataset = replace(Columns.BUILDING_TYPE, "2fmCon", "2FmCon", dataset)
@@ -612,6 +618,7 @@ def fix_data_quality(dataset):
     return dataset
 
 
+# This function converts specified columns into ordinal variables, with a choice of ascending or descending
 def mark_as_ordered(column, dataset, metadata, descending=False):
     metadata_entry = [x for x in metadata if x["name"] == column][0]
     print(metadata_entry)
@@ -665,6 +672,8 @@ def split_train_test(dataset):
     logging.info(f"Test set has {len(testing)} vectors")
     return training, testing
 
+# # Entry Point for CRISPR
+#  This function is the entry point for the entire CRISPR process. This is called by `main()`
 
 def study(raw_housing_prices):
     logging.debug(raw_housing_prices.head().to_string())
@@ -710,7 +719,16 @@ def search_regularization_hyperparameters(RegularizationMethod, housing_x_testin
     sns.scatterplot(ridge_coefficient_space, list(map(lambda r: r[R2_SCORE], results)))
     plt.show()
     best_model = model_near_regularization_coefficient(40, results)
+    logging.info("Best Model Summary")
+    logging.info(regression_equation(best_model[REGULARIZED_MODEL], housing_x_training.columns))
     predict_on_test_set(best_model[REGULARIZED_MODEL], housing_x_testing, housing_y_testing)
+
+
+def regression_equation(model, params):
+    coefficients = model.coef_
+    equation = sorted(list(zip(params, coefficients)), key = lambda term: term[1])
+    textual_equation = " + ".join(list(map(lambda term: f"({term[1]})x{term[0]}", equation)))
+    return f"Housing Sale Price Equation = {textual_equation}"
 
 
 def prepare_training(housing_training):
@@ -746,14 +764,10 @@ def predict_on_test_set(regularized_model, x_testing, y_testing):
     return predicted_y, y_testing
 
 
-# explore(imputed_housing_prices)
-# analyse(imputed_housing_prices)
-
-def log_statistics(regularization_coefficient, lr, y_training, predicted_y):
+def log_statistics(regularization_coefficient, y_training, predicted_y):
     r2 = r2_score(y_training, predicted_y)
     logging.info(f"Regularization Coefficient: {regularization_coefficient}")
     logging.info(f"R2 Score: {r2}")
-    logging.info(f"Regression Parameters: {lr.coef_}")
     rss = np.sum(np.square(y_training - predicted_y))
     logging.info(f"Residual Sum of Squares: {rss}")
     rmse = mean_squared_error(y_training, predicted_y) ** 0.5
@@ -765,7 +779,7 @@ def train_regularized_model(x_training, y_training, RegularizationMethod, regula
     regularized_model = RegularizationMethod(alpha=regularization_coefficient)
     regularized_model.fit(x_training, y_training)
     predicted_y = regularized_model.predict(x_training)
-    rmse, r2 = log_statistics(regularization_coefficient, regularized_model, y_training, predicted_y)
+    rmse, r2 = log_statistics(regularization_coefficient, y_training, predicted_y)
     return rmse, r2, regularized_model
 
 
