@@ -8,11 +8,15 @@ from scipy.fft import rfft, rfftfreq
 from scipy.signal import periodogram
 
 DEFAULT_DATASET_LOCATION = "~/Downloads"
-DEFAULT_DATA_CSV_FILENAME = "ecg1.csv"
+# DEFAULT_DATA_CSV_FILENAME = "ecg1.csv"
+DEFAULT_DATA_CSV_FILENAME = "ecg1_2nd_set.csv"
 
 
 def study(raw_data):
-    ecg_data = raw_data['0'].values
+    print(raw_data.columns)
+    # pass
+    ecg_data = raw_data['value'].values
+    # ecg_data = raw_data['0'].values
     yf = rfft(ecg_data)
     plt.figure()
     plt.title("Raw ECG Series")
@@ -38,8 +42,9 @@ def study(raw_data):
     f, power_density = periodogram(ecg_data, fs=sampling_frequency)
     plt.figure()
     plt.title("Power Spectral Density")
-    plt.plot(f[:13], 1000 * (power_density[:13]))
-    plt.ylim([1e-7, 4000])
+    number_of_values = 13
+    plt.plot(f, 1000 * (power_density))
+    plt.ylim([1e-7, 2000000])
     plt.xlabel('Frequency [Hz]')
     plt.ylabel('PSD [V^2*1000/Hz]')
     plt.grid()
@@ -69,10 +74,13 @@ def rmssd(x, threshold, total_time_in_seconds):
             tick += 1
     ticks = ticks[1:-1]
     tick_duration = total_time_in_seconds / len(x)
-    rr_intervals = map(lambda tick_count: tick_count * tick_duration, ticks)
-    squared_rr_intervals = map(lambda rr: rr * rr, rr_intervals)
-    rms_rr_intervals = math.sqrt(reduce(lambda x, y: x + y, squared_rr_intervals, 0) / len(ticks))
-    return rms_rr_intervals
+
+    rr_intervals = list(map(lambda tick_count: tick_count * tick_duration, ticks))
+    sum_squared_differences = 0
+    for index in range(0, len(rr_intervals)-1):
+        sum_squared_differences += (rr_intervals[index] - rr_intervals[index+1])*(rr_intervals[index] - rr_intervals[index+1])
+    rms_rr_interval_differences = math.sqrt(sum_squared_differences/(len(rr_intervals)-1))
+    return rms_rr_interval_differences
 
 
 def read_csv(csv):
