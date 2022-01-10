@@ -23,3 +23,6 @@ fileignoreconfig:
   checksum: 893a7dafbd7428a4981c1c626e7909db2ac15fcbe29a46aa73fe2c25536db873
 - filename: housing-prices-assignment/notebook/housing-price-assignment-notebook.ipynb
   checksum: fdd003f2cb6d80f2816f289758c5cbadd2ac0e1548213222068e79757cbf6303
+fileignoreconfig:
+- filename: nlp-assignment/Assignment.ipynb
+  checksum: a7dc0176c97b1fc1dfd954ba9770ebf5d48109ed3eb820d90f334ac936d1a38c
