@@ -5,6 +5,11 @@ import getopt
 import logging
 import sys
 
+DATA_TEST_LABELS = './data/test_label'
+DATA_TEST_SENTENCES = './data/test_sent'
+DATA_TRAIN_LABELS = './data/train_label'
+DATA_TRAIN_SENTENCES = './data/train_sent'
+
 model = spacy.load("en_core_web_sm")
 
 
@@ -33,10 +38,10 @@ def print_first_5(preprocessed_lines):
     logging.info(list(first_5_sentences))
 
 def analyse():
-    preprocessed_train_sentences = preprocessed('./data/train_sent')
-    preprocessed_train_labels = preprocessed('./data/train_label')
-    preprocessed_test_sentences = preprocessed('./data/test_sent')
-    preprocessed_test_labels = preprocessed('./data/test_label')
+    preprocessed_train_sentences = preprocessed(DATA_TRAIN_SENTENCES)
+    preprocessed_train_labels = preprocessed(DATA_TRAIN_LABELS)
+    preprocessed_test_sentences = preprocessed(DATA_TEST_SENTENCES)
+    preprocessed_test_labels = preprocessed(DATA_TEST_LABELS)
 
     print_first_5(preprocessed_train_sentences)
     print_first_5(preprocessed_train_labels)
