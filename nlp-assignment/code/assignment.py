@@ -1,9 +1,7 @@
+import logging
 from functools import reduce
 
 import spacy
-import getopt
-import logging
-import sys
 
 DATA_TEST_LABELS = './data/test_label'
 DATA_TEST_SENTENCES = './data/test_sent'
@@ -14,7 +12,6 @@ model = spacy.load("en_core_web_sm")
 
 
 def preprocessed(filename):
-    global make_next, add_to_current
     sentence_file = open(filename, 'r')
     sentence_lines = sentence_file.readlines()
 
@@ -37,6 +34,7 @@ def print_first_5(preprocessed_lines):
     first_5_sentences = map(lambda arr: " ".join(arr), first_5)
     logging.info(list(first_5_sentences))
 
+
 def analyse():
     preprocessed_train_sentences = preprocessed(DATA_TRAIN_SENTENCES)
     preprocessed_train_labels = preprocessed(DATA_TRAIN_LABELS)
@@ -50,6 +48,7 @@ def analyse():
     logging.info(f"NUMBER OF SENTENCES IN TESTING SET = {len(preprocessed_test_sentences)}")
     logging.info(f"NUMBER OF LABEL LINES IN TRAINING SET = {len(preprocessed_train_labels)}")
     logging.info(f"NUMBER OF LABEL LINES IN TESTING SET = {len(preprocessed_test_labels)}")
+
 
 def setup_logging():
     for handler in logging.root.handlers[:]:
