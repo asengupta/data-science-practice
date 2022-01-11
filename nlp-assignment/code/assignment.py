@@ -43,6 +43,8 @@ def analyse():
 
     logging.info(f"NUMBER OF SENTENCES IN TRAINING SET = {len(preprocessed_train_sentences)}")
     logging.info(f"NUMBER OF SENTENCES IN TESTING SET = {len(preprocessed_test_sentences)}")
+    logging.info(f"NUMBER OF LABEL LINES IN TRAINING SET = {len(preprocessed_train_labels)}")
+    logging.info(f"NUMBER OF LABEL LINES IN TESTING SET = {len(preprocessed_test_labels)}")
 
 def setup_logging():
     for handler in logging.root.handlers[:]:
